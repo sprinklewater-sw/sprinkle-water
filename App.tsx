@@ -1,18 +1,15 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import OrderScreen from './screens/OrderScreen';
+import HomeScreen from './screens/HomeScreen';
 
 export default function App() {
   return (
     <View style={styles.container}>
-      <OrderScreen onBack={() => {}} />
+      <HomeScreen onOrder={() => {}} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
 });
