@@ -7,7 +7,7 @@ import {
 
 const { width: SW } = Dimensions.get('window');
 
-interface Props { onOrder?: () => void; }
+interface Props { onOrder?: () => void; onTabChange?: (tab: string) => void; }
 
 const ORDERS = [
   { id: '#SW-2049', qty: 2, type: 'Exchange', slot: '12–1 PM', date: 'Today',     status: 'Out for Delivery', amt: 100 },
@@ -28,7 +28,7 @@ function greet() {
   return 'Good Evening';
 }
 
-export default function HomeScreen({ onOrder }: Props) {
+export default function HomeScreen({ onOrder, onTabChange }: Props) {
   const [tab, setTab] = useState('home');
   const fade  = useRef(new Animated.Value(0)).current;
   const slide = useRef(new Animated.Value(24)).current;
@@ -265,7 +265,7 @@ export default function HomeScreen({ onOrder }: Props) {
         ].map(t => {
           const active = tab === t.id;
           return (
-            <TouchableOpacity key={t.id} style={s.nTab} onPress={() => setTab(t.id)} activeOpacity={0.7}>
+            <TouchableOpacity key={t.id} style={s.nTab} onPress={() => { setTab(t.id); onTabChange && onTabChange(t.id); }} activeOpacity={0.7}>
               {active && <View style={s.nBar} />}
               <Text style={s.nIcon}>{t.icon}</Text>
               <Text style={[s.nLbl, active && s.nLblActive]}>{t.lbl}</Text>
