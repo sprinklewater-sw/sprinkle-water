@@ -6,10 +6,16 @@ import WalletScreen from './screens/WalletScreen';
 import CansScreen from './screens/CansScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import OrderScreen from './screens/OrderScreen';
+import AuthScreen from './screens/AuthScreen';
 
 export default function App() {
   const [tab, setTab] = useState('home');
   const [ordering, setOrdering] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(true);
+
+  if (!loggedIn) {
+    return <AuthScreen onAuthSuccess={() => setLoggedIn(true)} />;
+  }
 
   if (ordering) {
     return <OrderScreen onBack={() => setOrdering(false)} />;
