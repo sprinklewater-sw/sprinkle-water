@@ -1,14 +1,9 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  SafeAreaView,
-  StatusBar,
-  Platform,
+  View, Text, StyleSheet, TouchableOpacity,
+  ScrollView, SafeAreaView, StatusBar, Platform, Alert,
 } from 'react-native';
+import { supabase } from '../lib/supabase';
 
 const SLOTS = [
   '9–10 AM', '10–11 AM', '11 AM–12 PM',
@@ -29,9 +24,7 @@ function isSlotPast(index: number): boolean {
   return false;
 }
 
-interface Props {
-  onBack?: () => void;
-}
+interface Props { onBack?: () => void; }
 
 export default function OrderScreen({ onBack }: Props) {
   const [step, setStep] = useState(1);
@@ -41,11 +34,12 @@ export default function OrderScreen({ onBack }: Props) {
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
   const [orderPlaced, setOrderPlaced] = useState(false);
+  const [orderId, setOrderId] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const canPrice = 50;
   const depositPrice = 120;
   const emergencySurcharge = isEmergency ? 10 : 0;
-
   const waterTotal = canPrice * quantity;
   const depositTotal = isExchange ? 0 : depositPrice * quantity;
   const total = waterTotal + depositTotal + emergencySurcharge;
@@ -54,23 +48,62 @@ export default function OrderScreen({ onBack }: Props) {
     weekday: 'long', day: 'numeric', month: 'long'
   });
 
-  const orderId = '#SW-' + Math.floor(2000 + Math.random() * 1000);
+  const placeOrder = async () => {
+    if (!paymentMethod) return;
+    setLoading(true);
+    try {
+      // Use test user ID since login is bypassed
+      const userId = '00000000-0000-0000-0000-000000000001';
 
+      const { data: orderData, error } = await supabase
+        .from('orders')
+        .insert({
+          customer_id: userId,
+          quantity: quantity,
+          amount: total,
+          deposit_amount: depositTotal,
+          is_exchange: isExchange,
+          is_emergency: isEmergency,
+          delivery_slot: selectedSlot !== null ? SLOTS[selectedSlot] : '',
+          payment_method: paymentMethod,
+          status: 'pending',
+          payment_status: 'unpaid',
+          delivery_address: 'BTM Layout',
+          area: 'BTM Layout',
+        })
+        .select()
+        .single();
+
+      if (error) {
+        Alert.alert('Order Error', JSON.stringify(error));
+        setLoading(false);
+        return;
+      }
+
+      setOrderId(orderData.id.slice(0, 8).toUpperCase());
+      setOrderPlaced(true);
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Something went wrong');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // SUCCESS SCREEN
   if (orderPlaced) {
     return (
       <SafeAreaView style={styles.safe}>
-        <StatusBar barStyle="light-content" backgroundColor="#2E7D32" />
+        <StatusBar barStyle="light-content" backgroundColor={GM} />
         <ScrollView contentContainerStyle={styles.successContainer}>
           <View style={styles.successCircle}>
             <Text style={styles.successTick}>✓</Text>
           </View>
           <Text style={styles.successTitle}>Order Placed!</Text>
           <Text style={styles.successSub}>Your water is on its way 💧</Text>
-
           <View style={styles.detailCard}>
             <View style={styles.detailRow}>
               <Text style={styles.detailKey}>Order ID</Text>
-              <Text style={styles.detailVal}>{orderId}</Text>
+              <Text style={styles.detailVal}>#{orderId}</Text>
             </View>
             <View style={styles.detailRow}>
               <Text style={styles.detailKey}>Quantity</Text>
@@ -95,16 +128,14 @@ export default function OrderScreen({ onBack }: Props) {
               </View>
             )}
             <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
-              <Text style={[styles.detailKey, { fontWeight: '700', color: '#1A1A1A' }]}>Total Paid</Text>
-              <Text style={[styles.detailVal, { color: '#1B5E20', fontSize: 18 }]}>₹{total}</Text>
+              <Text style={[styles.detailKey, { fontWeight: '700', color: TX }]}>Total Paid</Text>
+              <Text style={[styles.detailVal, { color: GD, fontSize: 18 }]}>₹{total}</Text>
             </View>
           </View>
-
           <View style={styles.vendorCard}>
             <Text style={styles.vendorText}>🚴 Finding nearest vendor...</Text>
             <Text style={styles.vendorSub}>You'll be notified when vendor is assigned</Text>
           </View>
-
           <TouchableOpacity style={styles.trackBtn}>
             <Text style={styles.trackBtnText}>Track Order</Text>
           </TouchableOpacity>
@@ -118,7 +149,7 @@ export default function OrderScreen({ onBack }: Props) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor="#2E7D32" />
+      <StatusBar barStyle="light-content" backgroundColor={GM} />
 
       {/* HEADER */}
       <View style={styles.header}>
@@ -146,38 +177,27 @@ export default function OrderScreen({ onBack }: Props) {
         </View>
       </View>
 
-      {/* ═══ STEP 1 ═══ */}
+      {/* STEP 1 */}
       {step === 1 && (
         <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
-          {/* ADDRESS CARD */}
           <View style={styles.addressCard}>
             <Text style={styles.addressIcon}>📍</Text>
             <View style={{ flex: 1 }}>
               <Text style={styles.addressLabel}>Delivering to</Text>
               <Text style={styles.addressText}>BTM Layout, Bengaluru</Text>
             </View>
-            <TouchableOpacity>
-              <Text style={styles.changeBtn}>Change</Text>
-            </TouchableOpacity>
+            <TouchableOpacity><Text style={styles.changeBtn}>Change</Text></TouchableOpacity>
           </View>
 
-          {/* ORDER TYPE */}
           <Text style={styles.sectionTitle}>Select Order Type</Text>
           <View style={styles.toggleRow}>
-            <TouchableOpacity
-              style={[styles.toggleCard, isExchange && styles.toggleCardActive]}
-              onPress={() => setIsExchange(true)}
-            >
+            <TouchableOpacity style={[styles.toggleCard, isExchange && styles.toggleCardActive]} onPress={() => setIsExchange(true)}>
               <Text style={styles.toggleIcon}>🔄</Text>
               <Text style={[styles.toggleTitle, isExchange && styles.toggleTitleActive]}>Exchange</Text>
               <Text style={[styles.toggleSub, isExchange && styles.toggleSubActive]}>Empty Can</Text>
               <Text style={[styles.togglePrice, isExchange && styles.togglePriceActive]}>₹50</Text>
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.toggleCard, !isExchange && styles.toggleCardActive]}
-              onPress={() => setIsExchange(false)}
-            >
+            <TouchableOpacity style={[styles.toggleCard, !isExchange && styles.toggleCardActive]} onPress={() => setIsExchange(false)}>
               <Text style={styles.toggleIcon}>🆕</Text>
               <Text style={[styles.toggleTitle, !isExchange && styles.toggleTitleActive]}>New Can</Text>
               <Text style={[styles.toggleSub, !isExchange && styles.toggleSubActive]}>First Order</Text>
@@ -194,20 +214,13 @@ export default function OrderScreen({ onBack }: Props) {
             </View>
           )}
 
-          {/* QUANTITY */}
           <Text style={styles.sectionTitle}>How many cans?</Text>
           <View style={styles.qtyCard}>
-            <TouchableOpacity
-              style={styles.qtyBtn}
-              onPress={() => setQuantity(Math.max(1, quantity - 1))}
-            >
+            <TouchableOpacity style={styles.qtyBtn} onPress={() => setQuantity(Math.max(1, quantity - 1))}>
               <Text style={styles.qtyBtnText}>−</Text>
             </TouchableOpacity>
             <Text style={styles.qtyNum}>{quantity}</Text>
-            <TouchableOpacity
-              style={styles.qtyBtn}
-              onPress={() => setQuantity(Math.min(5, quantity + 1))}
-            >
+            <TouchableOpacity style={styles.qtyBtn} onPress={() => setQuantity(Math.min(5, quantity + 1))}>
               <Text style={styles.qtyBtnText}>+</Text>
             </TouchableOpacity>
           </View>
@@ -222,11 +235,7 @@ export default function OrderScreen({ onBack }: Props) {
             </View>
           )}
 
-          {/* EMERGENCY */}
-          <TouchableOpacity
-            style={styles.emergencyRow}
-            onPress={() => setIsEmergency(!isEmergency)}
-          >
+          <TouchableOpacity style={styles.emergencyRow} onPress={() => setIsEmergency(!isEmergency)}>
             <View>
               <Text style={styles.emergencyTitle}>⚡ Emergency Delivery</Text>
               <Text style={styles.emergencySub}>Within 2 hours · +₹10 surcharge</Text>
@@ -243,22 +252,19 @@ export default function OrderScreen({ onBack }: Props) {
           )}
 
           <Text style={styles.grandTotal}>Grand Total: ₹{total}</Text>
-
           <TouchableOpacity style={styles.continueBtn} onPress={() => setStep(2)}>
             <Text style={styles.continueBtnText}>Continue to Slot Selection →</Text>
           </TouchableOpacity>
-
           <View style={{ height: 40 }} />
         </ScrollView>
       )}
 
-      {/* ═══ STEP 2 ═══ */}
+      {/* STEP 2 */}
       {step === 2 && (
         <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
           <Text style={styles.sectionTitle}>Choose Delivery Time</Text>
           <Text style={styles.dateLabel}>📅 {today}</Text>
           <Text style={styles.slotNote}>Order must be placed 30 mins before slot closes</Text>
-
           <View style={styles.slotList}>
             {SLOTS.map((slot, i) => {
               const past = isSlotPast(i);
@@ -266,40 +272,22 @@ export default function OrderScreen({ onBack }: Props) {
               return (
                 <TouchableOpacity
                   key={i}
-                  style={[
-                    styles.slotCard,
-                    selected && styles.slotCardSelected,
-                    past && styles.slotCardPast,
-                  ]}
+                  style={[styles.slotCard, selected && styles.slotCardSelected, past && styles.slotCardPast]}
                   onPress={() => !past && setSelectedSlot(i)}
                   disabled={past}
                   activeOpacity={past ? 1 : 0.7}
                 >
                   <View style={styles.slotLeft}>
-                    <View style={[
-                      styles.slotDot,
-                      selected && styles.slotDotSelected,
-                      past && styles.slotDotPast,
-                    ]} />
-                    <Text style={[
-                      styles.slotTime,
-                      selected && styles.slotTimeSelected,
-                      past && styles.slotTimePast,
-                    ]}>
+                    <View style={[styles.slotDot, selected && styles.slotDotSelected, past && styles.slotDotPast]} />
+                    <Text style={[styles.slotTime, selected && styles.slotTimeSelected, past && styles.slotTimePast]}>
                       {slot}
                     </Text>
                   </View>
                   {selected ? (
                     <Text style={styles.slotCheck}>✓</Text>
                   ) : (
-                    <View style={[
-                      styles.slotBadge,
-                      past ? styles.slotBadgePast : styles.slotBadgeAvail,
-                    ]}>
-                      <Text style={[
-                        styles.slotBadgeText,
-                        past ? styles.slotBadgeTextPast : styles.slotBadgeTextAvail,
-                      ]}>
+                    <View style={[styles.slotBadge, past ? styles.slotBadgePast : styles.slotBadgeAvail]}>
+                      <Text style={[styles.slotBadgeText, past ? styles.slotBadgeTextPast : styles.slotBadgeTextAvail]}>
                         {past ? 'Passed' : 'Available'}
                       </Text>
                     </View>
@@ -308,31 +296,25 @@ export default function OrderScreen({ onBack }: Props) {
               );
             })}
           </View>
-
           {selectedSlot !== null && (
             <View style={styles.selectedSlotCard}>
-              <Text style={styles.selectedSlotText}>
-                ✓ Selected: {SLOTS[selectedSlot]}
-              </Text>
+              <Text style={styles.selectedSlotText}>✓ Selected: {SLOTS[selectedSlot]}</Text>
             </View>
           )}
-
           <TouchableOpacity
             style={[styles.continueBtn, selectedSlot === null && styles.continueBtnDisabled]}
             onPress={() => selectedSlot !== null && setStep(3)}
           >
             <Text style={styles.continueBtnText}>Continue to Payment →</Text>
           </TouchableOpacity>
-
           <View style={{ height: 40 }} />
         </ScrollView>
       )}
 
-      {/* ═══ STEP 3 ═══ */}
+      {/* STEP 3 */}
       {step === 3 && (
         <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
           <Text style={styles.sectionTitle}>Order Summary</Text>
-
           <View style={styles.summaryCard}>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryKey}>Water Can × {quantity}</Text>
@@ -361,7 +343,6 @@ export default function OrderScreen({ onBack }: Props) {
           </View>
 
           <Text style={styles.sectionTitle}>Payment Method</Text>
-
           {['💳 Wallet Balance', '📱 UPI / QR Code', '💳 Credit / Debit Card', '💵 Cash on Delivery'].map((method, i) => (
             <TouchableOpacity
               key={i}
@@ -374,12 +355,14 @@ export default function OrderScreen({ onBack }: Props) {
           ))}
 
           <TouchableOpacity
-            style={[styles.placeBtn, !paymentMethod && styles.placeBtnDisabled]}
-            onPress={() => paymentMethod && setOrderPlaced(true)}
+            style={[styles.placeBtn, (!paymentMethod || loading) && styles.placeBtnDisabled]}
+            onPress={placeOrder}
+            disabled={!paymentMethod || loading}
           >
-            <Text style={styles.placeBtnText}>Place Order · ₹{total}</Text>
+            <Text style={styles.placeBtnText}>
+              {loading ? 'Placing Order...' : `Place Order · ₹${total}`}
+            </Text>
           </TouchableOpacity>
-
           <View style={{ height: 40 }} />
         </ScrollView>
       )}
@@ -387,244 +370,122 @@ export default function OrderScreen({ onBack }: Props) {
   );
 }
 
-const G_DARK = '#1B5E20';
-const G_MAIN = '#2E7D32';
-const G_LIGHT = '#4CAF50';
-const G_PALE = '#E8F5E9';
-const G_ULTRA = '#F1F8F1';
-const BORDER = '#C8E6C9';
-const WHITE = '#FFFFFF';
-const TEXT = '#1A1A1A';
-const MUTED = '#757575';
+const GD = '#1B5E20';
+const GM = '#2E7D32';
+const GL = '#4CAF50';
+const GP = '#E8F5E9';
+const GU = '#F1F8F1';
+const BD = '#C8E6C9';
+const WH = '#FFFFFF';
+const TX = '#1A1A1A';
+const MU = '#757575';
+const SERIF = Platform.OS === 'ios' ? 'Georgia' : 'serif';
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: WHITE },
-
-  header: {
-    backgroundColor: G_MAIN,
-    paddingTop: Platform.OS === 'android' ? 12 : 0,
-    paddingBottom: 14,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    elevation: 4,
-    shadowColor: G_DARK,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-  },
-  backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  backIcon: { fontSize: 22, color: WHITE, fontWeight: '700' },
-  headerTitle: {
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-    fontSize: 18,
-    fontWeight: '700',
-    color: WHITE,
-    textAlign: 'center',
-  },
-  headerSub: { fontSize: 11, color: 'rgba(255,255,255,0.75)', textAlign: 'center' },
-
-  progressWrap: { backgroundColor: WHITE, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: BORDER },
-  progressSteps: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  progressStep: { fontSize: 10, color: MUTED, fontWeight: '500', letterSpacing: 0.3 },
-  progressStepActive: { color: G_MAIN, fontWeight: '700' },
-  progressBarBg: { height: 4, backgroundColor: G_PALE, borderRadius: 4, overflow: 'hidden' },
-  progressBarFill: { height: '100%', backgroundColor: G_MAIN, borderRadius: 4 },
-
-  body: { flex: 1, backgroundColor: G_ULTRA, paddingHorizontal: 16, paddingTop: 16 },
-
-  addressCard: {
-    backgroundColor: WHITE, borderRadius: 16, padding: 14, marginBottom: 16,
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    borderWidth: 1, borderColor: BORDER,
-    elevation: 2, shadowColor: G_MAIN, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4,
-  },
-  addressIcon: { fontSize: 20 },
-  addressLabel: { fontSize: 11, color: MUTED, marginBottom: 2 },
-  addressText: { fontSize: 14, fontWeight: '700', color: TEXT },
-  changeBtn: { fontSize: 13, color: G_MAIN, fontWeight: '700' },
-
-  sectionTitle: {
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-    fontSize: 17, fontWeight: '700', color: TEXT, marginBottom: 10, marginTop: 4,
-  },
-
-  toggleRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
-  toggleCard: {
-    flex: 1, backgroundColor: WHITE, borderRadius: 16, padding: 16,
-    borderWidth: 2, borderColor: BORDER, alignItems: 'flex-start',
-    elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3,
-  },
-  toggleCardActive: { backgroundColor: G_MAIN, borderColor: G_MAIN, elevation: 4, shadowOpacity: 0.2 },
-  toggleIcon: { fontSize: 22, marginBottom: 6 },
-  toggleTitle: { fontSize: 13, fontWeight: '700', color: TEXT, marginBottom: 2 },
-  toggleTitleActive: { color: WHITE },
-  toggleSub: { fontSize: 11, color: MUTED, marginBottom: 6 },
-  toggleSubActive: { color: 'rgba(255,255,255,0.75)' },
-  togglePrice: { fontSize: 22, fontWeight: '800', color: G_MAIN, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
-  togglePriceActive: { color: WHITE },
-
-  depositInfo: {
-    backgroundColor: G_PALE, borderRadius: 12, padding: 12, marginBottom: 16,
-    borderLeftWidth: 3, borderLeftColor: G_MAIN,
-  },
-  depositInfoText: { fontSize: 13, color: G_DARK, lineHeight: 20 },
-  depositBreakdown: { fontSize: 12, color: G_MAIN, fontWeight: '700', marginTop: 4 },
-
-  qtyCard: {
-    backgroundColor: WHITE, borderRadius: 16, padding: 16, marginBottom: 8,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24,
-    borderWidth: 1, borderColor: BORDER,
-    elevation: 2, shadowColor: G_MAIN, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4,
-  },
-  qtyBtn: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: G_PALE, borderWidth: 2, borderColor: G_MAIN,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  qtyBtnText: { fontSize: 22, fontWeight: '700', color: G_MAIN, lineHeight: 26 },
-  qtyNum: { fontSize: 36, fontWeight: '800', color: TEXT, minWidth: 50, textAlign: 'center', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
-  qtyTotal: { fontSize: 16, fontWeight: '700', color: G_DARK, textAlign: 'center', marginBottom: 12 },
-
-  bulkCard: {
-    backgroundColor: '#FFF8E1', borderRadius: 12, padding: 14, marginBottom: 12,
-    borderWidth: 1, borderColor: '#FFE082', alignItems: 'center',
-  },
-  bulkText: { fontSize: 13, color: '#F57F17', fontWeight: '600', marginBottom: 8 },
-  bulkBtn: { backgroundColor: '#25D366', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8 },
-  bulkBtnText: { fontSize: 13, color: WHITE, fontWeight: '700' },
-
-  emergencyRow: {
-    backgroundColor: WHITE, borderRadius: 14, padding: 14, marginBottom: 8,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    borderWidth: 1, borderColor: BORDER,
-  },
-  emergencyTitle: { fontSize: 14, fontWeight: '700', color: TEXT },
-  emergencySub: { fontSize: 11, color: MUTED, marginTop: 2 },
-  toggle: { width: 48, height: 26, borderRadius: 13, backgroundColor: '#E0E0E0', padding: 2 },
-  toggleOn: { backgroundColor: G_LIGHT },
-  toggleThumb: { width: 22, height: 22, borderRadius: 11, backgroundColor: WHITE, elevation: 2 },
-  toggleThumbOn: { marginLeft: 22 },
-
-  emergencyBadge: {
-    backgroundColor: '#FFF3E0', borderRadius: 10, padding: 10, marginBottom: 8,
-    borderWidth: 1, borderColor: '#FFB74D',
-  },
+  safe:               { flex: 1, backgroundColor: WH },
+  header:             { backgroundColor: GM, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', elevation: 4, shadowColor: GD, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4 },
+  backBtn:            { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+  backIcon:           { fontSize: 22, color: WH, fontWeight: '700' },
+  headerTitle:        { fontFamily: SERIF, fontSize: 18, fontWeight: '700', color: WH, textAlign: 'center' },
+  headerSub:          { fontSize: 11, color: 'rgba(255,255,255,0.75)', textAlign: 'center' },
+  progressWrap:       { backgroundColor: WH, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: BD },
+  progressSteps:      { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  progressStep:       { fontSize: 10, color: MU, fontWeight: '500', letterSpacing: 0.3 },
+  progressStepActive: { color: GM, fontWeight: '700' },
+  progressBarBg:      { height: 4, backgroundColor: GP, borderRadius: 4, overflow: 'hidden' },
+  progressBarFill:    { height: '100%', backgroundColor: GM, borderRadius: 4 },
+  body:               { flex: 1, backgroundColor: GU, paddingHorizontal: 16, paddingTop: 16 },
+  addressCard:        { backgroundColor: WH, borderRadius: 16, padding: 14, marginBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: BD, elevation: 2 },
+  addressIcon:        { fontSize: 20 },
+  addressLabel:       { fontSize: 11, color: MU, marginBottom: 2 },
+  addressText:        { fontSize: 14, fontWeight: '700', color: TX },
+  changeBtn:          { fontSize: 13, color: GM, fontWeight: '700' },
+  sectionTitle:       { fontFamily: SERIF, fontSize: 17, fontWeight: '700', color: TX, marginBottom: 10, marginTop: 4 },
+  toggleRow:          { flexDirection: 'row', gap: 10, marginBottom: 12 },
+  toggleCard:         { flex: 1, backgroundColor: WH, borderRadius: 16, padding: 16, borderWidth: 2, borderColor: BD, alignItems: 'flex-start', elevation: 1 },
+  toggleCardActive:   { backgroundColor: GM, borderColor: GM, elevation: 4 },
+  toggleIcon:         { fontSize: 22, marginBottom: 6 },
+  toggleTitle:        { fontSize: 13, fontWeight: '700', color: TX, marginBottom: 2 },
+  toggleTitleActive:  { color: WH },
+  toggleSub:          { fontSize: 11, color: MU, marginBottom: 6 },
+  toggleSubActive:    { color: 'rgba(255,255,255,0.75)' },
+  togglePrice:        { fontSize: 22, fontWeight: '800', color: GM, fontFamily: SERIF },
+  togglePriceActive:  { color: WH },
+  depositInfo:        { backgroundColor: GP, borderRadius: 12, padding: 12, marginBottom: 16, borderLeftWidth: 3, borderLeftColor: GM },
+  depositInfoText:    { fontSize: 13, color: GD, lineHeight: 20 },
+  depositBreakdown:   { fontSize: 12, color: GM, fontWeight: '700', marginTop: 4 },
+  qtyCard:            { backgroundColor: WH, borderRadius: 16, padding: 16, marginBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, borderWidth: 1, borderColor: BD, elevation: 2 },
+  qtyBtn:             { width: 44, height: 44, borderRadius: 22, backgroundColor: GP, borderWidth: 2, borderColor: GM, justifyContent: 'center', alignItems: 'center' },
+  qtyBtnText:         { fontSize: 22, fontWeight: '700', color: GM, lineHeight: 26 },
+  qtyNum:             { fontSize: 36, fontWeight: '800', color: TX, minWidth: 50, textAlign: 'center', fontFamily: SERIF },
+  qtyTotal:           { fontSize: 16, fontWeight: '700', color: GD, textAlign: 'center', marginBottom: 12 },
+  bulkCard:           { backgroundColor: '#FFF8E1', borderRadius: 12, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: '#FFE082', alignItems: 'center' },
+  bulkText:           { fontSize: 13, color: '#F57F17', fontWeight: '600', marginBottom: 8 },
+  bulkBtn:            { backgroundColor: '#25D366', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8 },
+  bulkBtnText:        { fontSize: 13, color: WH, fontWeight: '700' },
+  emergencyRow:       { backgroundColor: WH, borderRadius: 14, padding: 14, marginBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: BD },
+  emergencyTitle:     { fontSize: 14, fontWeight: '700', color: TX },
+  emergencySub:       { fontSize: 11, color: MU, marginTop: 2 },
+  toggle:             { width: 48, height: 26, borderRadius: 13, backgroundColor: '#E0E0E0', padding: 2 },
+  toggleOn:           { backgroundColor: GL },
+  toggleThumb:        { width: 22, height: 22, borderRadius: 11, backgroundColor: WH, elevation: 2 },
+  toggleThumbOn:      { marginLeft: 22 },
+  emergencyBadge:     { backgroundColor: '#FFF3E0', borderRadius: 10, padding: 10, marginBottom: 8, borderWidth: 1, borderColor: '#FFB74D' },
   emergencyBadgeText: { fontSize: 12, color: '#E65100', fontWeight: '600', textAlign: 'center' },
-
-  grandTotal: {
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-    fontSize: 22, fontWeight: '800', color: G_DARK,
-    textAlign: 'center', marginVertical: 16,
-  },
-
-  continueBtn: {
-    backgroundColor: G_MAIN, borderRadius: 16, padding: 16, alignItems: 'center',
-    elevation: 4, shadowColor: G_DARK, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8,
-  },
-  continueBtnDisabled: { backgroundColor: '#A5D6A7', elevation: 0 },
-  continueBtnText: { fontSize: 16, fontWeight: '700', color: WHITE, letterSpacing: 0.5 },
-
-  dateLabel: { fontSize: 13, color: MUTED, marginBottom: 4 },
-  slotNote: { fontSize: 11, color: MUTED, marginBottom: 14, fontStyle: 'italic' },
-
-  slotList: { gap: 8, marginBottom: 16 },
-  slotCard: {
-    backgroundColor: WHITE, borderRadius: 14, padding: 14,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    borderWidth: 1.5, borderColor: BORDER,
-    elevation: 1, shadowColor: G_MAIN, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3,
-  },
-  slotCardSelected: {
-    backgroundColor: G_MAIN, borderColor: G_MAIN,
-    elevation: 4, shadowOpacity: 0.25,
-  },
-  slotCardPast: { opacity: 0.4 },
-  slotLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  slotDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: G_LIGHT },
-  slotDotSelected: { backgroundColor: 'rgba(255,255,255,0.8)' },
-  slotDotPast: { backgroundColor: '#BDBDBD' },
-  slotTime: { fontSize: 15, fontWeight: '700', color: TEXT },
-  slotTimeSelected: { color: WHITE },
-  slotTimePast: { color: '#BDBDBD' },
-  slotBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  slotBadgeAvail: { backgroundColor: G_PALE },
-  slotBadgePast: { backgroundColor: '#F5F5F5' },
-  slotBadgeText: { fontSize: 11, fontWeight: '600' },
-  slotBadgeTextAvail: { color: G_DARK },
-  slotBadgeTextPast: { color: '#BDBDBD' },
-  slotCheck: { fontSize: 18, color: WHITE, fontWeight: '700' },
-
-  selectedSlotCard: {
-    backgroundColor: G_PALE, borderRadius: 12, padding: 12, marginBottom: 16,
-    borderWidth: 1, borderColor: BORDER,
-  },
-  selectedSlotText: { fontSize: 14, fontWeight: '700', color: G_DARK, textAlign: 'center' },
-
-  summaryCard: {
-    backgroundColor: WHITE, borderRadius: 16, padding: 16, marginBottom: 16,
-    borderWidth: 1, borderColor: BORDER,
-    elevation: 2, shadowColor: G_MAIN, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4,
-  },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: G_PALE },
-  summaryTotalRow: { borderBottomWidth: 0, marginTop: 4, paddingTop: 12 },
-  summaryKey: { fontSize: 13, color: MUTED },
-  summaryVal: { fontSize: 13, fontWeight: '600', color: TEXT },
-  summaryTotalKey: { fontSize: 16, fontWeight: '800', color: TEXT },
-  summaryTotalVal: { fontSize: 20, fontWeight: '800', color: G_DARK, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
-
-  payCard: {
-    backgroundColor: WHITE, borderRadius: 14, padding: 16, marginBottom: 10,
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    borderWidth: 2, borderColor: BORDER,
-    elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3,
-  },
-  payCardSelected: { borderColor: G_MAIN, backgroundColor: G_ULTRA },
-  payLabel: { fontSize: 14, fontWeight: '600', color: TEXT },
-  payCheck: { fontSize: 18, color: G_MAIN, fontWeight: '700' },
-
-  placeBtn: {
-    backgroundColor: G_DARK, borderRadius: 16, padding: 18, alignItems: 'center', marginTop: 8,
-    elevation: 6, shadowColor: G_DARK, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8,
-  },
-  placeBtnDisabled: { backgroundColor: '#A5D6A7', elevation: 0 },
-  placeBtnText: { fontSize: 17, fontWeight: '800', color: WHITE, letterSpacing: 0.5 },
-
-  successContainer: { alignItems: 'center', padding: 24, paddingTop: 48 },
-  successCircle: {
-    width: 90, height: 90, borderRadius: 45,
-    backgroundColor: G_MAIN, justifyContent: 'center', alignItems: 'center', marginBottom: 20,
-    elevation: 8, shadowColor: G_DARK, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 12,
-  },
-  successTick: { fontSize: 44, color: WHITE, fontWeight: '800' },
-  successTitle: {
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-    fontSize: 30, fontWeight: '800', color: G_DARK, marginBottom: 6,
-  },
-  successSub: { fontSize: 15, color: MUTED, marginBottom: 24 },
-  detailCard: {
-    width: '100%', backgroundColor: WHITE, borderRadius: 16, padding: 16, marginBottom: 16,
-    borderWidth: 1, borderColor: BORDER,
-    elevation: 2, shadowColor: G_MAIN, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4,
-  },
-  detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: G_PALE },
-  detailKey: { fontSize: 13, color: MUTED },
-  detailVal: { fontSize: 13, fontWeight: '700', color: TEXT },
-  vendorCard: {
-    width: '100%', backgroundColor: '#E3F2FD', borderRadius: 14, padding: 14, marginBottom: 20,
-    borderWidth: 1, borderColor: '#90CAF9', alignItems: 'center',
-  },
-  vendorText: { fontSize: 14, fontWeight: '700', color: '#1565C0', marginBottom: 4 },
-  vendorSub: { fontSize: 12, color: '#1976D2' },
-  trackBtn: {
-    width: '100%', backgroundColor: G_MAIN, borderRadius: 14, padding: 16, alignItems: 'center', marginBottom: 10,
-    elevation: 4, shadowColor: G_DARK, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8,
-  },
-  trackBtnText: { fontSize: 16, fontWeight: '700', color: WHITE },
-  homeBtn: {
-    width: '100%', backgroundColor: WHITE, borderRadius: 14, padding: 14, alignItems: 'center',
-    borderWidth: 2, borderColor: BORDER,
-  },
-  homeBtnText: { fontSize: 15, fontWeight: '600', color: G_MAIN },
+  grandTotal:         { fontFamily: SERIF, fontSize: 22, fontWeight: '800', color: GD, textAlign: 'center', marginVertical: 16 },
+  continueBtn:        { backgroundColor: GM, borderRadius: 16, padding: 16, alignItems: 'center', elevation: 4, shadowColor: GD, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
+  continueBtnDisabled:{ backgroundColor: '#A5D6A7', elevation: 0 },
+  continueBtnText:    { fontSize: 16, fontWeight: '700', color: WH, letterSpacing: 0.5 },
+  dateLabel:          { fontSize: 13, color: MU, marginBottom: 4 },
+  slotNote:           { fontSize: 11, color: MU, marginBottom: 14, fontStyle: 'italic' },
+  slotList:           { gap: 8, marginBottom: 16 },
+  slotCard:           { backgroundColor: WH, borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1.5, borderColor: BD, elevation: 1 },
+  slotCardSelected:   { backgroundColor: GM, borderColor: GM, elevation: 4 },
+  slotCardPast:       { opacity: 0.4 },
+  slotLeft:           { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  slotDot:            { width: 10, height: 10, borderRadius: 5, backgroundColor: GL },
+  slotDotSelected:    { backgroundColor: 'rgba(255,255,255,0.8)' },
+  slotDotPast:        { backgroundColor: '#BDBDBD' },
+  slotTime:           { fontSize: 15, fontWeight: '700', color: TX },
+  slotTimeSelected:   { color: WH },
+  slotTimePast:       { color: '#BDBDBD' },
+  slotBadge:          { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  slotBadgeAvail:     { backgroundColor: GP },
+  slotBadgePast:      { backgroundColor: '#F5F5F5' },
+  slotBadgeText:      { fontSize: 11, fontWeight: '600' },
+  slotBadgeTextAvail: { color: GD },
+  slotBadgeTextPast:  { color: '#BDBDBD' },
+  slotCheck:          { fontSize: 18, color: WH, fontWeight: '700' },
+  selectedSlotCard:   { backgroundColor: GP, borderRadius: 12, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: BD },
+  selectedSlotText:   { fontSize: 14, fontWeight: '700', color: GD, textAlign: 'center' },
+  summaryCard:        { backgroundColor: WH, borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: BD, elevation: 2 },
+  summaryRow:         { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: GP },
+  summaryTotalRow:    { borderBottomWidth: 0, marginTop: 4, paddingTop: 12 },
+  summaryKey:         { fontSize: 13, color: MU },
+  summaryVal:         { fontSize: 13, fontWeight: '600', color: TX },
+  summaryTotalKey:    { fontSize: 16, fontWeight: '800', color: TX },
+  summaryTotalVal:    { fontSize: 20, fontWeight: '800', color: GD, fontFamily: SERIF },
+  payCard:            { backgroundColor: WH, borderRadius: 14, padding: 16, marginBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 2, borderColor: BD, elevation: 1 },
+  payCardSelected:    { borderColor: GM, backgroundColor: GU },
+  payLabel:           { fontSize: 14, fontWeight: '600', color: TX },
+  payCheck:           { fontSize: 18, color: GM, fontWeight: '700' },
+  placeBtn:           { backgroundColor: GD, borderRadius: 16, padding: 18, alignItems: 'center', marginTop: 8, elevation: 6, shadowColor: GD, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8 },
+  placeBtnDisabled:   { backgroundColor: '#A5D6A7', elevation: 0 },
+  placeBtnText:       { fontSize: 17, fontWeight: '800', color: WH, letterSpacing: 0.5 },
+  successContainer:   { alignItems: 'center', padding: 24, paddingTop: 48 },
+  successCircle:      { width: 90, height: 90, borderRadius: 45, backgroundColor: GM, justifyContent: 'center', alignItems: 'center', marginBottom: 20, elevation: 8 },
+  successTick:        { fontSize: 44, color: WH, fontWeight: '800' },
+  successTitle:       { fontFamily: SERIF, fontSize: 30, fontWeight: '800', color: GD, marginBottom: 6 },
+  successSub:         { fontSize: 15, color: MU, marginBottom: 24 },
+  detailCard:         { width: '100%', backgroundColor: WH, borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: BD, elevation: 2 },
+  detailRow:          { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: GP },
+  detailKey:          { fontSize: 13, color: MU },
+  detailVal:          { fontSize: 13, fontWeight: '700', color: TX },
+  vendorCard:         { width: '100%', backgroundColor: '#E3F2FD', borderRadius: 14, padding: 14, marginBottom: 20, borderWidth: 1, borderColor: '#90CAF9', alignItems: 'center' },
+  vendorText:         { fontSize: 14, fontWeight: '700', color: '#1565C0', marginBottom: 4 },
+  vendorSub:          { fontSize: 12, color: '#1976D2' },
+  trackBtn:           { width: '100%', backgroundColor: GM, borderRadius: 14, padding: 16, alignItems: 'center', marginBottom: 10, elevation: 4 },
+  trackBtnText:       { fontSize: 16, fontWeight: '700', color: WH },
+  homeBtn:            { width: '100%', backgroundColor: WH, borderRadius: 14, padding: 14, alignItems: 'center', borderWidth: 2, borderColor: BD },
+  homeBtnText:        { fontSize: 15, fontWeight: '600', color: GM },
 });
