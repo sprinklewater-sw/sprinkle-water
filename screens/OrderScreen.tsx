@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, SafeAreaView, StatusBar, Platform, Alert,
@@ -36,10 +36,33 @@ export default function OrderScreen({ onBack }: Props) {
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderId, setOrderId] = useState('');
   const [loading, setLoading] = useState(false);
+  const [canPrice, setCanPrice] = useState(50);
+  const [depositPrice, setDepositPrice] = useState(120);
+  const [emergencyFee, setEmergencyFee] = useState(10);
 
-  const canPrice = 50;
-  const depositPrice = 120;
-  const emergencySurcharge = isEmergency ? 10 : 0;
+  useEffect(() => {
+    loadPricing();
+  }, []);
+
+  const loadPricing = async () => {
+    try {
+      const { data } = await supabase
+        .from('settings')
+        .select('key, value')
+        .in('key', ['can_price', 'deposit_amount', 'emergency_surcharge']);
+      if (data) {
+        data.forEach(s => {
+          if (s.key === 'can_price') setCanPrice(Number(s.value));
+          if (s.key === 'deposit_amount') setDepositPrice(Number(s.value));
+          if (s.key === 'emergency_surcharge') setEmergencyFee(Number(s.value));
+        });
+      }
+    } catch (err) {
+      console.log('Pricing load error:', err);
+    }
+  };
+
+  const emergencySurcharge = isEmergency ? emergencyFee : 0;
   const waterTotal = canPrice * quantity;
   const depositTotal = isExchange ? 0 : depositPrice * quantity;
   const total = waterTotal + depositTotal + emergencySurcharge;
@@ -52,9 +75,7 @@ export default function OrderScreen({ onBack }: Props) {
     if (!paymentMethod) return;
     setLoading(true);
     try {
-      // Use test user ID since login is bypassed
       const userId = '00000000-0000-0000-0000-000000000001';
-
       const { data: orderData, error } = await supabase
         .from('orders')
         .insert({
@@ -89,7 +110,6 @@ export default function OrderScreen({ onBack }: Props) {
     }
   };
 
-  // SUCCESS SCREEN
   if (orderPlaced) {
     return (
       <SafeAreaView style={styles.safe}>
@@ -151,7 +171,6 @@ export default function OrderScreen({ onBack }: Props) {
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor={GM} />
 
-      {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity onPress={step > 1 ? () => setStep(step - 1) : onBack} style={styles.backBtn}>
           <Text style={styles.backIcon}>←</Text>
@@ -163,7 +182,6 @@ export default function OrderScreen({ onBack }: Props) {
         <View style={{ width: 36 }} />
       </View>
 
-      {/* PROGRESS BAR */}
       <View style={styles.progressWrap}>
         <View style={styles.progressSteps}>
           {['Select Order', 'Choose Slot', 'Payment'].map((label, i) => (
@@ -177,7 +195,6 @@ export default function OrderScreen({ onBack }: Props) {
         </View>
       </View>
 
-      {/* STEP 1 */}
       {step === 1 && (
         <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
           <View style={styles.addressCard}>
@@ -195,22 +212,22 @@ export default function OrderScreen({ onBack }: Props) {
               <Text style={styles.toggleIcon}>🔄</Text>
               <Text style={[styles.toggleTitle, isExchange && styles.toggleTitleActive]}>Exchange</Text>
               <Text style={[styles.toggleSub, isExchange && styles.toggleSubActive]}>Empty Can</Text>
-              <Text style={[styles.togglePrice, isExchange && styles.togglePriceActive]}>₹50</Text>
+              <Text style={[styles.togglePrice, isExchange && styles.togglePriceActive]}>₹{canPrice}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.toggleCard, !isExchange && styles.toggleCardActive]} onPress={() => setIsExchange(false)}>
               <Text style={styles.toggleIcon}>🆕</Text>
               <Text style={[styles.toggleTitle, !isExchange && styles.toggleTitleActive]}>New Can</Text>
               <Text style={[styles.toggleSub, !isExchange && styles.toggleSubActive]}>First Order</Text>
-              <Text style={[styles.togglePrice, !isExchange && styles.togglePriceActive]}>₹170</Text>
+              <Text style={[styles.togglePrice, !isExchange && styles.togglePriceActive]}>₹{canPrice + depositPrice}</Text>
             </TouchableOpacity>
           </View>
 
           {!isExchange && (
             <View style={styles.depositInfo}>
               <Text style={styles.depositInfoText}>
-                💡 ₹120 deposit included — <Text style={{ fontWeight: '700' }}>fully refundable</Text> when you return the can
+                💡 ₹{depositPrice} deposit included — <Text style={{ fontWeight: '700' }}>fully refundable</Text> when you return the can
               </Text>
-              <Text style={styles.depositBreakdown}>Water ₹50 × {quantity} + Deposit ₹120 × {quantity} = ₹{total - emergencySurcharge}</Text>
+              <Text style={styles.depositBreakdown}>Water ₹{canPrice} × {quantity} + Deposit ₹{depositPrice} × {quantity} = ₹{total - emergencySurcharge}</Text>
             </View>
           )}
 
@@ -238,7 +255,7 @@ export default function OrderScreen({ onBack }: Props) {
           <TouchableOpacity style={styles.emergencyRow} onPress={() => setIsEmergency(!isEmergency)}>
             <View>
               <Text style={styles.emergencyTitle}>⚡ Emergency Delivery</Text>
-              <Text style={styles.emergencySub}>Within 2 hours · +₹10 surcharge</Text>
+              <Text style={styles.emergencySub}>Within 2 hours · +₹{emergencyFee} surcharge</Text>
             </View>
             <View style={[styles.toggle, isEmergency && styles.toggleOn]}>
               <View style={[styles.toggleThumb, isEmergency && styles.toggleThumbOn]} />
@@ -247,7 +264,7 @@ export default function OrderScreen({ onBack }: Props) {
 
           {isEmergency && (
             <View style={styles.emergencyBadge}>
-              <Text style={styles.emergencyBadgeText}>⚡ Priority Delivery Active · +₹10 added</Text>
+              <Text style={styles.emergencyBadgeText}>⚡ Priority Delivery Active · +₹{emergencyFee} added</Text>
             </View>
           )}
 
@@ -259,7 +276,6 @@ export default function OrderScreen({ onBack }: Props) {
         </ScrollView>
       )}
 
-      {/* STEP 2 */}
       {step === 2 && (
         <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
           <Text style={styles.sectionTitle}>Choose Delivery Time</Text>
@@ -311,7 +327,6 @@ export default function OrderScreen({ onBack }: Props) {
         </ScrollView>
       )}
 
-      {/* STEP 3 */}
       {step === 3 && (
         <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
           <Text style={styles.sectionTitle}>Order Summary</Text>
@@ -329,7 +344,7 @@ export default function OrderScreen({ onBack }: Props) {
             {isEmergency && (
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryKey}>⚡ Emergency Surcharge</Text>
-                <Text style={styles.summaryVal}>₹10</Text>
+                <Text style={styles.summaryVal}>₹{emergencyFee}</Text>
               </View>
             )}
             <View style={styles.summaryRow}>
