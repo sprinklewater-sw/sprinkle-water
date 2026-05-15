@@ -7,14 +7,20 @@ import CansScreen from './screens/CansScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import OrderScreen from './screens/OrderScreen';
 import AuthScreen from './screens/AuthScreen';
+import VendorApp from './screens/vendor/VendorApp';
 
 export default function App() {
   const [tab, setTab] = useState('home');
   const [ordering, setOrdering] = useState(false);
   const [loggedIn, setLoggedIn] = useState(true);
+  const [isVendor, setIsVendor] = useState(true); // change to true to test vendor app
 
   if (!loggedIn) {
     return <AuthScreen onAuthSuccess={() => setLoggedIn(true)} />;
+  }
+
+  if (isVendor) {
+    return <VendorApp />;
   }
 
   if (ordering) {
