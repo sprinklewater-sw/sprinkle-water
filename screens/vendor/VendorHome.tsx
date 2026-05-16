@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, StatusBar, Platform, Modal, Animated } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import VendorBottomNav from './VendorBottomNav';
@@ -14,27 +14,41 @@ export default function VendorHome({ onTabChange }: Props) {
   const [isAvailable, setIsAvailable] = useState(true);
   const [showOrderAlert, setShowOrderAlert] = useState(false);
   const [incomingOrder, setIncomingOrder] = useState<any>(null);
-  const [tripSlots, setTripSlots] = useState(2);
+  const [tripSlots, setTripSlots] = useState(0);
   const [countdown, setCountdown] = useState(60);
-  const pulseAnim = new Animated.Value(1);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     loadData();
-    // Simulate incoming order after 3 seconds for demo
-    const timer = setTimeout(() => {
-      setIncomingOrder({
-        id: 'demo-order-001',
-        area: 'BTM Layout',
-        distance: '800m',
-        quantity: 2,
-        type: 'Exchange',
-        slot: '12–1 PM',
-        payment: 'Cash on Delivery',
-      });
-      setShowOrderAlert(true);
-      startCountdown();
-    }, 3000);
-    return () => clearTimeout(timer);
+
+    // Supabase Realtime — listen for new orders instantly
+    const subscription = supabase
+      .channel('new-orders')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'orders' },
+        (payload) => {
+          const order = payload.new;
+          setIncomingOrder({
+            id: order.id,
+            area: order.area || 'BTM Layout',
+            distance: '800m',
+            quantity: order.quantity,
+            type: order.is_exchange ? 'Exchange' : 'New Can',
+            slot: order.delivery_slot,
+            payment: order.payment_method,
+          });
+          setShowOrderAlert(true);
+          startCountdown();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -65,7 +79,6 @@ export default function VendorHome({ onTabChange }: Props) {
       const { data: ordersData } = await supabase
         .from('orders')
         .select('amount')
-        .eq('vendor_id', VENDOR_ID)
         .eq('status', 'delivered');
       if (ordersData) {
         const todayEarnings = ordersData.length * vendorMargin;
@@ -77,24 +90,34 @@ export default function VendorHome({ onTabChange }: Props) {
   };
 
   const startCountdown = () => {
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    setCountdown(60);
     let count = 60;
-    const timer = setInterval(() => {
+    countdownRef.current = setInterval(() => {
       count--;
       setCountdown(count);
       if (count <= 0) {
-        clearInterval(timer);
+        if (countdownRef.current) clearInterval(countdownRef.current);
         setShowOrderAlert(false);
       }
     }, 1000);
   };
 
-  const acceptOrder = () => {
+  const acceptOrder = async () => {
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    if (incomingOrder?.id && incomingOrder.id !== 'demo') {
+      await supabase
+        .from('orders')
+        .update({ status: 'confirmed', vendor_id: VENDOR_ID })
+        .eq('id', incomingOrder.id);
+    }
     setTripSlots(prev => Math.min(prev + 1, 5));
     setShowOrderAlert(false);
     setCountdown(60);
   };
 
   const rejectOrder = () => {
+    if (countdownRef.current) clearInterval(countdownRef.current);
     setShowOrderAlert(false);
     setCountdown(60);
   };
@@ -148,14 +171,20 @@ export default function VendorHome({ onTabChange }: Props) {
           </View>
         </View>
 
+        {/* REALTIME STATUS */}
+        <View style={s.realtimeBadge}>
+          <View style={s.realtimeDot} />
+          <Text style={s.realtimeTxt}>🟢 Live — Listening for new orders</Text>
+        </View>
+
         {/* EARNINGS */}
         <View style={s.sec}>
           <Text style={s.secTitle}>Today's Earnings</Text>
           <View style={s.earningsRow}>
             {[
-              { lbl: 'Today', val: `₹${earnings.today}`, clr: OR },
-              { lbl: 'This Week', val: `₹${earnings.week}`, clr: '#2E7D32' },
-              { lbl: 'Pending', val: `₹${earnings.pending}`, clr: '#1565C0' },
+              { lbl: 'Today',     val: `₹${earnings.today}`,   clr: OR        },
+              { lbl: 'This Week', val: `₹${earnings.week}`,    clr: '#2E7D32' },
+              { lbl: 'Pending',   val: `₹${earnings.pending}`, clr: '#1565C0' },
             ].map((e, i) => (
               <View key={i} style={s.earningCard}>
                 <Text style={[s.earningVal, { color: e.clr }]}>{e.val}</Text>
@@ -175,10 +204,10 @@ export default function VendorHome({ onTabChange }: Props) {
           </View>
           <View style={s.stockGrid}>
             {[
-              { icon: '🫙', lbl: 'Filled Cans\nWith Me', val: stock.filled_cans, clr: OR, bg: '#FFF3E0' },
-              { icon: '🪣', lbl: 'Empty Cans\nWith Me', val: stock.empty_cans_with_vendor, clr: '#795548', bg: '#EFEBE9' },
-              { icon: '🏠', lbl: 'Cans at\nCustomers', val: stock.cans_at_customers, clr: '#1565C0', bg: '#E3F2FD' },
-              { icon: '✅', lbl: 'Delivered\nToday', val: stock.total_delivered_today, clr: '#2E7D32', bg: '#E8F5E9' },
+              { icon: '🫙', lbl: 'Filled Cans\nWith Me',  val: stock.filled_cans,            clr: OR,        bg: '#FFF3E0' },
+              { icon: '🪣', lbl: 'Empty Cans\nWith Me',   val: stock.empty_cans_with_vendor, clr: '#795548', bg: '#EFEBE9' },
+              { icon: '🏠', lbl: 'Cans at\nCustomers',    val: stock.cans_at_customers,      clr: '#1565C0', bg: '#E3F2FD' },
+              { icon: '✅', lbl: 'Delivered\nToday',      val: stock.total_delivered_today,  clr: '#2E7D32', bg: '#E8F5E9' },
             ].map((st, i) => (
               <View key={i} style={[s.stockCard, { backgroundColor: st.bg }]}>
                 <Text style={s.stockIcon}>{st.icon}</Text>
@@ -194,10 +223,10 @@ export default function VendorHome({ onTabChange }: Props) {
           <Text style={s.secTitle}>Quick Actions</Text>
           <View style={s.actionGrid}>
             {[
-              { icon: '📦', lbl: 'View Orders', action: 'orders' },
-              { icon: '🫙', lbl: 'Update Stock', action: 'stock' },
-              { icon: '💰', lbl: 'My Wallet', action: 'wallet' },
-              { icon: '📊', lbl: 'My Profile', action: 'profile' },
+              { icon: '📦', lbl: 'View Orders',  action: 'orders'  },
+              { icon: '🫙', lbl: 'Update Stock', action: 'stock'   },
+              { icon: '💰', lbl: 'My Wallet',    action: 'wallet'  },
+              { icon: '📊', lbl: 'My Profile',   action: 'profile' },
             ].map((a, i) => (
               <TouchableOpacity key={i} style={s.actionCard}
                 onPress={() => onTabChange && onTabChange(a.action)}>
@@ -220,7 +249,7 @@ export default function VendorHome({ onTabChange }: Props) {
 
       </ScrollView>
 
-      {/* INCOMING ORDER ALERT */}
+      {/* INCOMING ORDER ALERT — FULL SCREEN POPUP */}
       <Modal visible={showOrderAlert} transparent animationType="fade">
         <View style={s.modalOverlay}>
           <View style={s.orderAlert}>
@@ -256,7 +285,6 @@ export default function VendorHome({ onTabChange }: Props) {
               </TouchableOpacity>
             </View>
 
-            {/* COUNTDOWN BAR */}
             <View style={s.countdownBar}>
               <View style={[s.countdownFill, { width: `${(countdown / 60) * 100}%` as any }]} />
             </View>
@@ -269,7 +297,7 @@ export default function VendorHome({ onTabChange }: Props) {
   );
 }
 
-const HD = '#BF360C'; const OR = '#E65100'; const OL = '#FF6D00';
+const HD = '#BF360C'; const OR = '#E65100';
 const WH = '#FFFFFF'; const TX = '#1A1A1A'; const MU = '#757575';
 const SERIF = Platform.OS === 'ios' ? 'Georgia' : 'serif';
 
@@ -286,6 +314,9 @@ const s = StyleSheet.create({
   availTxt:          { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.8)' },
   availTxtOn:        { color: '#4CAF50' },
   scroll:            { flex: 1, backgroundColor: '#FFF8F5' },
+  realtimeBadge:     { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#E8F5E9', marginHorizontal: 14, marginTop: 10, borderRadius: 10, padding: 10, borderWidth: 1, borderColor: '#C8E6C9' },
+  realtimeDot:       { width: 8, height: 8, borderRadius: 4, backgroundColor: '#4CAF50' },
+  realtimeTxt:       { fontSize: 12, fontWeight: '600', color: '#2E7D32' },
   vendorCard:        { backgroundColor: WH, margin: 14, borderRadius: 18, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: '#FFE0B2', elevation: 2 },
   vendorLeft:        { flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar:            { width: 48, height: 48, borderRadius: 24, backgroundColor: OR, justifyContent: 'center', alignItems: 'center' },
