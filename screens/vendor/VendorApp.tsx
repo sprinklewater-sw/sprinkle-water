@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
+import VendorLogin from './VendorLogin';
 import VendorHome from './VendorHome';
 import VendorOrders from './VendorOrders';
 import VendorStock from './VendorStock';
@@ -8,6 +9,11 @@ import VendorProfile from './VendorProfile';
 
 export default function VendorApp() {
   const [tab, setTab] = useState('home');
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  if (!loggedIn) {
+    return <VendorLogin onLoginSuccess={() => setLoggedIn(true)} />;
+  }
 
   return (
     <View style={styles.container}>
