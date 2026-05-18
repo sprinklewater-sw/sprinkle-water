@@ -3,11 +3,14 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Sta
 import { supabase } from '../../lib/supabase';
 import VendorBottomNav from './VendorBottomNav';
 
-interface Props { onTabChange?: (tab: string) => void; }
+interface Props {
+  onTabChange?: (tab: string) => void;
+  onOrderStock?: () => void;
+}
 
 const VENDOR_ID = '00000000-0000-0000-0000-000000000002';
 
-export default function VendorStock({ onTabChange }: Props) {
+export default function VendorStock({ onTabChange, onOrderStock }: Props) {
   const [stock, setStock] = useState({ filled_cans: 0, empty_cans_with_vendor: 0, cans_at_customers: 0, total_delivered_today: 0 });
   const [loading, setLoading] = useState(true);
   const [closingCount, setClosingCount] = useState('');
@@ -61,12 +64,10 @@ export default function VendorStock({ onTabChange }: Props) {
       const submitted = Number(closingCount);
       const expected = stock.filled_cans;
       const missing = expected - submitted;
-
       await supabase
         .from('vendor_stock')
         .update({ filled_cans: submitted, last_updated: new Date().toISOString() })
         .eq('vendor_id', VENDOR_ID);
-
       if (missing > 0) {
         Alert.alert('⚠️ Discrepancy Found!', `${missing} cans missing. Admin has been notified.`);
       } else {
@@ -96,15 +97,21 @@ export default function VendorStock({ onTabChange }: Props) {
       ) : (
         <ScrollView style={s.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 }}>
 
+          {/* ORDER STOCK BUTTON */}
+          <TouchableOpacity style={s.orderStockBtn} onPress={onOrderStock}>
+            <Text style={s.orderStockTxt}>📦 Order Stock from Sprinkle →</Text>
+            <Text style={s.orderStockSub}>Bulk pricing available · 7-day credit</Text>
+          </TouchableOpacity>
+
           {/* STOCK OVERVIEW */}
           <View style={s.sec}>
             <Text style={s.secTitle}>Current Stock</Text>
             <View style={s.stockGrid}>
               {[
-                { icon: '🫙', lbl: 'Filled Cans\nWith Me',     val: stock.filled_cans,              clr: OR,       bg: '#FFF3E0' },
-                { icon: '🪣', lbl: 'Empty Cans\nWith Me',      val: stock.empty_cans_with_vendor,   clr: '#795548', bg: '#EFEBE9' },
-                { icon: '🏠', lbl: 'Cans at\nCustomers',       val: stock.cans_at_customers,        clr: '#1565C0', bg: '#E3F2FD' },
-                { icon: '✅', lbl: 'Delivered\nToday',         val: stock.total_delivered_today,    clr: '#2E7D32', bg: '#E8F5E9' },
+                { icon: '🫙', lbl: 'Filled Cans\nWith Me',     val: stock.filled_cans,            clr: OR,        bg: '#FFF3E0' },
+                { icon: '🪣', lbl: 'Empty Cans\nWith Me',      val: stock.empty_cans_with_vendor, clr: '#795548', bg: '#EFEBE9' },
+                { icon: '🏠', lbl: 'Cans at\nCustomers',       val: stock.cans_at_customers,      clr: '#1565C0', bg: '#E3F2FD' },
+                { icon: '✅', lbl: 'Delivered\nToday',         val: stock.total_delivered_today,  clr: '#2E7D32', bg: '#E8F5E9' },
               ].map((st, i) => (
                 <View key={i} style={[s.stockCard, { backgroundColor: st.bg }]}>
                   <Text style={s.stockIcon}>{st.icon}</Text>
@@ -209,38 +216,41 @@ const WH = '#FFFFFF'; const TX = '#1A1A1A'; const MU = '#757575';
 const SERIF = Platform.OS === 'ios' ? 'Georgia' : 'serif';
 
 const s = StyleSheet.create({
-  safe:         { flex: 1, backgroundColor: WH },
-  header:       { backgroundColor: HD, paddingTop: Platform.OS === 'android' ? 10 : 4, paddingBottom: 14, paddingHorizontal: 16, elevation: 5 },
-  title:        { fontFamily: SERIF, fontSize: 22, fontWeight: '700', fontStyle: 'italic', color: WH },
-  sub:          { fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
-  loadingWrap:  { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  scroll:       { flex: 1, backgroundColor: '#FFF8F5' },
-  sec:          { paddingHorizontal: 14, paddingTop: 4, paddingBottom: 12 },
-  secTitle:     { fontFamily: SERIF, fontSize: 16, fontWeight: '700', color: TX, marginBottom: 10 },
-  stockGrid:    { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  stockCard:    { width: '47%', borderRadius: 14, padding: 14, elevation: 1 },
-  stockIcon:    { fontSize: 24, marginBottom: 6 },
-  stockVal:     { fontFamily: SERIF, fontSize: 28, fontWeight: '800', marginBottom: 2 },
-  stockLbl:     { fontSize: 10, color: MU, lineHeight: 14 },
-  summaryCard:  { backgroundColor: WH, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#FFE0B2', elevation: 1, alignItems: 'center' },
-  summaryTitle: { fontSize: 14, fontWeight: '700', color: TX, marginBottom: 6 },
-  summaryVal:   { fontFamily: SERIF, fontSize: 40, fontWeight: '800', color: OR, marginBottom: 12 },
-  summaryBreak: { width: '100%' },
-  summaryRow:   { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: '#FFF3E0' },
-  summaryKey:   { fontSize: 13, color: MU },
-  summaryV:     { fontSize: 13, fontWeight: '700', color: TX },
-  actionCard:   { backgroundColor: WH, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#FFE0B2', elevation: 1 },
-  actionDesc:   { fontSize: 13, color: MU, marginBottom: 12, lineHeight: 18 },
-  inputRow:     { flexDirection: 'row', gap: 8 },
-  input:        { flex: 1, backgroundColor: '#FFF8F5', borderRadius: 10, borderWidth: 1.5, borderColor: '#FFE0B2', paddingHorizontal: 14, paddingVertical: 10, fontSize: 15, color: TX },
-  confirmBtn:   { backgroundColor: OR, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 12, justifyContent: 'center', elevation: 2 },
-  confirmBtnTxt:{ fontSize: 13, fontWeight: '700', color: WH },
-  expectedRow:  { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: '#FFF3E0', borderRadius: 8, padding: 10, marginBottom: 10 },
-  expectedLbl:  { fontSize: 13, color: MU },
-  expectedVal:  { fontSize: 13, fontWeight: '700', color: OR },
-  histCard:     { backgroundColor: WH, borderRadius: 12, padding: 12, marginBottom: 8, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: '#FFE0B2' },
-  histIcon:     { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
-  histAction:   { fontSize: 13, fontWeight: '600', color: TX, marginBottom: 2 },
-  histDate:     { fontSize: 10, color: MU },
-  histCans:     { fontSize: 14, fontWeight: '800' },
+  safe:          { flex: 1, backgroundColor: WH },
+  header:        { backgroundColor: HD, paddingTop: Platform.OS === 'android' ? 10 : 4, paddingBottom: 14, paddingHorizontal: 16, elevation: 5 },
+  title:         { fontFamily: SERIF, fontSize: 22, fontWeight: '700', fontStyle: 'italic', color: WH },
+  sub:           { fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
+  loadingWrap:   { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  scroll:        { flex: 1, backgroundColor: '#FFF8F5' },
+  orderStockBtn: { backgroundColor: OR, margin: 14, borderRadius: 16, padding: 16, alignItems: 'center', elevation: 4, shadowColor: OR, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 6 },
+  orderStockTxt: { fontSize: 15, fontWeight: '800', color: WH, marginBottom: 3 },
+  orderStockSub: { fontSize: 11, color: 'rgba(255,255,255,0.8)' },
+  sec:           { paddingHorizontal: 14, paddingTop: 4, paddingBottom: 12 },
+  secTitle:      { fontFamily: SERIF, fontSize: 16, fontWeight: '700', color: TX, marginBottom: 10 },
+  stockGrid:     { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  stockCard:     { width: '47%', borderRadius: 14, padding: 14, elevation: 1 },
+  stockIcon:     { fontSize: 24, marginBottom: 6 },
+  stockVal:      { fontFamily: SERIF, fontSize: 28, fontWeight: '800', marginBottom: 2 },
+  stockLbl:      { fontSize: 10, color: MU, lineHeight: 14 },
+  summaryCard:   { backgroundColor: WH, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#FFE0B2', elevation: 1, alignItems: 'center' },
+  summaryTitle:  { fontSize: 14, fontWeight: '700', color: TX, marginBottom: 6 },
+  summaryVal:    { fontFamily: SERIF, fontSize: 40, fontWeight: '800', color: OR, marginBottom: 12 },
+  summaryBreak:  { width: '100%' },
+  summaryRow:    { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: '#FFF3E0' },
+  summaryKey:    { fontSize: 13, color: MU },
+  summaryV:      { fontSize: 13, fontWeight: '700', color: TX },
+  actionCard:    { backgroundColor: WH, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#FFE0B2', elevation: 1 },
+  actionDesc:    { fontSize: 13, color: MU, marginBottom: 12, lineHeight: 18 },
+  inputRow:      { flexDirection: 'row', gap: 8 },
+  input:         { flex: 1, backgroundColor: '#FFF8F5', borderRadius: 10, borderWidth: 1.5, borderColor: '#FFE0B2', paddingHorizontal: 14, paddingVertical: 10, fontSize: 15, color: TX },
+  confirmBtn:    { backgroundColor: OR, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 12, justifyContent: 'center', elevation: 2 },
+  confirmBtnTxt: { fontSize: 13, fontWeight: '700', color: WH },
+  expectedRow:   { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: '#FFF3E0', borderRadius: 8, padding: 10, marginBottom: 10 },
+  expectedLbl:   { fontSize: 13, color: MU },
+  expectedVal:   { fontSize: 13, fontWeight: '700', color: OR },
+  histCard:      { backgroundColor: WH, borderRadius: 12, padding: 12, marginBottom: 8, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: '#FFE0B2' },
+  histIcon:      { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
+  histAction:    { fontSize: 13, fontWeight: '600', color: TX, marginBottom: 2 },
+  histDate:      { fontSize: 10, color: MU },
+  histCans:      { fontSize: 14, fontWeight: '800' },
 });

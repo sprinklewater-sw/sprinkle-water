@@ -1,0 +1,2230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sprinkle Water — Admin Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #1a6b3c;
+    --primary-light: #2d9e5f;
+    --primary-pale: #e8f5ee;
+    --accent: #f0a500;
+    --accent-pale: #fff8e6;
+    --danger: #e53935;
+    --danger-pale: #ffebee;
+    --info: #1565c0;
+    --info-pale: #e3f2fd;
+    --purple: #6a1b9a;
+    --purple-pale: #f3e5f5;
+    --bg: #f4f7f5;
+    --card: #ffffff;
+    --sidebar: #0d3d22;
+    --sidebar-hover: #1a6b3c;
+    --text: #1a1a2e;
+    --muted: #6b7280;
+    --border: #e2e8f0;
+    --shadow: 0 2px 16px rgba(26,107,60,0.08);
+    --radius: 16px;
+    --font-display: 'Playfair Display', Georgia, serif;
+    --font-body: 'DM Sans', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 260px;
+    background: var(--sidebar);
+    min-height: 100vh;
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    transition: width 0.3s;
+  }
+
+  .sidebar-logo {
+    padding: 28px 24px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .sidebar-logo .brand {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-style: italic;
+    color: #fff;
+    letter-spacing: 0.5px;
+  }
+
+  .sidebar-logo .tagline {
+    font-size: 10px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .sidebar-nav {
+    flex: 1;
+    padding: 16px 0;
+    overflow-y: auto;
+  }
+
+  .nav-section {
+    padding: 8px 16px 4px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.25);
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-left: 3px solid transparent;
+    color: rgba(255,255,255,0.6);
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .nav-item:hover {
+    background: rgba(255,255,255,0.06);
+    color: #fff;
+    border-left-color: rgba(255,255,255,0.2);
+  }
+
+  .nav-item.active {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    border-left-color: var(--accent);
+  }
+
+  .nav-item .icon { font-size: 18px; width: 22px; }
+  .nav-badge {
+    margin-left: auto;
+    background: var(--danger);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
+  }
+
+  .sidebar-footer {
+    padding: 16px 24px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .admin-pill {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+
+  .admin-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 800; color: #fff;
+    font-family: var(--font-display);
+  }
+
+  .admin-name { font-size: 13px; color: #fff; font-weight: 600; }
+  .admin-role { font-size: 10px; color: rgba(255,255,255,0.4); }
+
+  /* MAIN */
+  .main {
+    margin-left: 260px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* TOP BAR */
+  .topbar {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    box-shadow: 0 1px 0 var(--border);
+  }
+
+  .topbar-left { display: flex; align-items: center; gap: 16px; }
+
+  .page-title {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .breadcrumb {
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #e8f5ee;
+    border: 1px solid #a8d5b8;
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primary);
+  }
+
+  .live-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--primary-light);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  .topbar-btn {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .topbar-btn:hover { background: var(--bg); }
+
+  .notif-dot {
+    position: absolute;
+    top: 6px; right: 6px;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--danger);
+    border: 1.5px solid #fff;
+  }
+
+  /* CONTENT */
+  .content {
+    padding: 28px 32px;
+    flex: 1;
+  }
+
+  /* SECTION */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* STATS GRID */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 22px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s;
+  }
+
+  .stat-card:hover { transform: translateY(-2px); }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+
+  .stat-card.green::before { background: linear-gradient(90deg, var(--primary), var(--primary-light)); }
+  .stat-card.amber::before { background: linear-gradient(90deg, #f0a500, #ffcc42); }
+  .stat-card.blue::before { background: linear-gradient(90deg, #1565c0, #42a5f5); }
+  .stat-card.purple::before { background: linear-gradient(90deg, #6a1b9a, #ab47bc); }
+
+  .stat-icon {
+    width: 42px; height: 42px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    margin-bottom: 14px;
+  }
+
+  .stat-card.green .stat-icon { background: var(--primary-pale); }
+  .stat-card.amber .stat-icon { background: var(--accent-pale); }
+  .stat-card.blue .stat-icon { background: var(--info-pale); }
+  .stat-card.purple .stat-icon { background: var(--purple-pale); }
+
+  .stat-val {
+    font-family: var(--font-display);
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .stat-label { font-size: 13px; color: var(--muted); font-weight: 500; }
+
+  .stat-change {
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .stat-change.up { color: var(--primary-light); }
+  .stat-change.down { color: var(--danger); }
+
+  /* GRID LAYOUTS */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 24px; }
+
+  /* CARD */
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .card-title {
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .card-subtitle { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    font-family: var(--font-body);
+  }
+
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-light); transform: translateY(-1px); }
+  .btn-outline { background: transparent; color: var(--primary); border: 1.5px solid var(--primary); }
+  .btn-outline:hover { background: var(--primary-pale); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-amber { background: var(--accent); color: #fff; }
+  .btn-sm { padding: 5px 12px; font-size: 12px; border-radius: 8px; }
+  .btn-icon { padding: 8px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); cursor: pointer; font-size: 15px; }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  thead th {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+
+  tbody td {
+    padding: 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+
+  tbody tr:hover { background: var(--bg); }
+  tbody tr:last-child td { border-bottom: none; }
+
+  /* BADGES */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .badge-dot { width: 5px; height: 5px; border-radius: 50%; }
+  .badge.green { background: var(--primary-pale); color: var(--primary); }
+  .badge.amber { background: var(--accent-pale); color: #b37a00; }
+  .badge.blue { background: var(--info-pale); color: var(--info); }
+  .badge.red { background: var(--danger-pale); color: var(--danger); }
+  .badge.purple { background: var(--purple-pale); color: var(--purple); }
+  .badge.gray { background: #f1f5f9; color: #64748b; }
+
+  /* REVENUE CHART */
+  .chart-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    height: 120px;
+    padding-bottom: 4px;
+  }
+
+  .chart-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+
+  .chart-bar {
+    width: 100%;
+    border-radius: 6px 6px 0 0;
+    background: linear-gradient(180deg, var(--primary-light), var(--primary));
+    transition: all 0.3s;
+    cursor: pointer;
+    min-height: 4px;
+  }
+
+  .chart-bar:hover { opacity: 0.8; transform: scaleY(1.02); transform-origin: bottom; }
+  .chart-bar.accent { background: linear-gradient(180deg, #ffcc42, var(--accent)); }
+  .chart-label { font-size: 10px; color: var(--muted); font-weight: 500; }
+
+  /* ACTIVITY FEED */
+  .activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .activity-item:last-child { border-bottom: none; }
+
+  .activity-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .activity-text { font-size: 13px; color: var(--text); line-height: 1.5; }
+  .activity-time { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* VENDOR STATUS */
+  .vendor-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .vendor-row:last-child { border-bottom: none; }
+
+  .vendor-avatar {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: var(--primary);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display);
+    font-size: 16px;
+    color: #fff;
+    font-weight: 700;
+  }
+
+  .vendor-info { flex: 1; }
+  .vendor-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .vendor-area { font-size: 11px; color: var(--muted); }
+
+  .vendor-stats { text-align: right; }
+  .vendor-deliveries { font-size: 14px; font-weight: 700; color: var(--primary); }
+  .vendor-stock { font-size: 11px; color: var(--muted); }
+
+  /* ONLINE INDICATOR */
+  .online-ind {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .online-ind.online { background: #22c55e; }
+  .online-ind.offline { background: #94a3b8; }
+
+  /* SEARCH BAR */
+  .search-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-size: 14px;
+    color: var(--text);
+    width: 280px;
+  }
+
+  .search-bar input {
+    border: none;
+    background: transparent;
+    outline: none;
+    flex: 1;
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--text);
+  }
+
+  /* FILTERS */
+  .filters {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .filter-btn {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: var(--card);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font-body);
+  }
+
+  .filter-btn:hover, .filter-btn.active {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-pale);
+  }
+
+  /* SETTINGS */
+  .settings-group {
+    margin-bottom: 24px;
+  }
+
+  .settings-group-title {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .setting-row:last-child { border-bottom: none; }
+  .setting-label { font-size: 14px; font-weight: 600; color: var(--text); }
+  .setting-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .setting-input {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    width: 120px;
+    font-family: var(--font-mono);
+  }
+
+  .setting-input input {
+    border: none;
+    background: transparent;
+    outline: none;
+    width: 70px;
+    font-family: var(--font-mono);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  /* TOGGLE */
+  .toggle {
+    width: 46px; height: 26px;
+    border-radius: 13px;
+    background: #e2e8f0;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s;
+    border: none;
+    flex-shrink: 0;
+  }
+
+  .toggle.on { background: var(--primary); }
+
+  .toggle::after {
+    content: '';
+    position: absolute;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    top: 3px; left: 3px;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+
+  .toggle.on::after { transform: translateX(20px); }
+
+  /* COUPON CARD */
+  .coupon-card {
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    border-radius: var(--radius);
+    padding: 20px;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .coupon-card::before {
+    content: '';
+    position: absolute;
+    right: -20px; top: -20px;
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+  }
+
+  .coupon-code {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    margin-bottom: 6px;
+  }
+
+  .coupon-discount { font-size: 13px; color: rgba(255,255,255,0.8); }
+  .coupon-meta { font-size: 11px; color: rgba(255,255,255,0.6); margin-top: 10px; }
+
+  /* COMPLAINT */
+  .complaint-item {
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    margin-bottom: 10px;
+    background: var(--card);
+    transition: all 0.2s;
+  }
+
+  .complaint-item:hover { border-color: var(--primary); }
+
+  .complaint-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .complaint-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .complaint-body { font-size: 13px; color: var(--muted); line-height: 1.5; margin-bottom: 10px; }
+  .complaint-actions { display: flex; gap: 8px; }
+
+  /* MINI STATS */
+  .mini-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+
+  .mini-stat {
+    background: var(--bg);
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+    border: 1px solid var(--border);
+  }
+
+  .mini-stat-val { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--text); }
+  .mini-stat-label { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  /* PROGRESS BAR */
+  .progress-bar {
+    height: 6px;
+    background: var(--bg);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--primary), var(--primary-light));
+    transition: width 0.5s;
+  }
+
+  /* REVENUE TICKER */
+  .revenue-ticker {
+    background: linear-gradient(135deg, var(--primary), #0d5c35);
+    border-radius: var(--radius);
+    padding: 24px;
+    color: #fff;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .revenue-ticker::before {
+    content: '₹';
+    position: absolute;
+    right: -20px;
+    top: -30px;
+    font-family: var(--font-display);
+    font-size: 140px;
+    color: rgba(255,255,255,0.04);
+    font-weight: 900;
+  }
+
+  .ticker-label { font-size: 12px; color: rgba(255,255,255,0.65); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+  .ticker-value { font-family: var(--font-display); font-size: 44px; font-weight: 900; }
+  .ticker-sub { font-size: 12px; color: rgba(255,255,255,0.55); margin-top: 6px; }
+
+  .ticker-right { text-align: right; }
+  .ticker-orders { font-family: var(--font-display); font-size: 28px; font-weight: 700; }
+
+  /* DONUT */
+  .donut-wrap { display: flex; align-items: center; gap: 20px; }
+  .donut { width: 80px; height: 80px; }
+
+  .donut-legend { flex: 1; }
+  .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; color: var(--muted); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ALERTS */
+  .alert-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .alert-item.warning { background: var(--accent-pale); color: #92600a; border: 1px solid #fcd34d; }
+  .alert-item.info { background: var(--info-pale); color: var(--info); border: 1px solid #90caf9; }
+  .alert-item.success { background: var(--primary-pale); color: var(--primary); border: 1px solid #a8d5b8; }
+
+  /* SUBSCRIPTION CARD */
+  .sub-card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* FINANCE CARD */
+  .finance-hero {
+    background: linear-gradient(135deg, #1a1a2e, #0d3d22);
+    border-radius: var(--radius);
+    padding: 28px;
+    color: #fff;
+    margin-bottom: 20px;
+  }
+
+  .finance-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px; }
+
+  .finance-stat {
+    background: rgba(255,255,255,0.07);
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .finance-stat-val { font-family: var(--font-display); font-size: 24px; font-weight: 700; color: #fff; }
+  .finance-stat-label { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 28px;
+    width: 460px;
+    max-width: 90vw;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  }
+
+  .modal-title { font-family: var(--font-display); font-size: 20px; font-weight: 700; margin-bottom: 20px; }
+  .modal-form { display: flex; flex-direction: column; gap: 14px; }
+
+  .form-group label { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 0.5px; display: block; margin-bottom: 6px; }
+
+  .form-input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: var(--font-body);
+    color: var(--text);
+    background: var(--bg);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .form-input:focus { border-color: var(--primary); }
+
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* RESPONSIVE */
+  @media (max-width: 1200px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 768px) {
+    .sidebar { width: 60px; }
+    .sidebar-logo .brand, .nav-item span, .sidebar-footer .admin-name, .sidebar-footer .admin-role { display: none; }
+    .main { margin-left: 60px; }
+    .stats-grid { grid-template-columns: 1fr; }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">💧 Sprinkle</div>
+    <div class="tagline">Admin Portal</div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section">Main</div>
+    <div class="nav-item active" onclick="showSection('overview')">
+      <span class="icon">📊</span>
+      <span>Command Center</span>
+    </div>
+    <div class="nav-item" onclick="showSection('orders')">
+      <span class="icon">📦</span>
+      <span>Orders</span>
+      <span class="nav-badge">12</span>
+    </div>
+
+    <div class="nav-section">Management</div>
+    <div class="nav-item" onclick="showSection('vendors')">
+      <span class="icon">🚴</span>
+      <span>Vendors</span>
+    </div>
+    <div class="nav-item" onclick="showSection('customers')">
+      <span class="icon">👥</span>
+      <span>Customers</span>
+    </div>
+    <div class="nav-item" onclick="showSection('subscriptions')">
+      <span class="icon">📅</span>
+      <span>Subscriptions</span>
+    </div>
+
+    <div class="nav-section">Growth</div>
+    <div class="nav-item" onclick="showSection('coupons')">
+      <span class="icon">🎟️</span>
+      <span>Coupons & Offers</span>
+    </div>
+    <div class="nav-item" onclick="showSection('analytics')">
+      <span class="icon">📈</span>
+      <span>Analytics</span>
+    </div>
+
+    <div class="nav-section">Operations</div>
+    <div class="nav-item" onclick="showSection('complaints')">
+      <span class="icon">💬</span>
+      <span>Complaints</span>
+      <span class="nav-badge">3</span>
+    </div>
+    <div class="nav-item" onclick="showSection('finance')">
+      <span class="icon">💰</span>
+      <span>Finance</span>
+    </div>
+    <div class="nav-item" onclick="showSection('settings')">
+      <span class="icon">⚙️</span>
+      <span>Settings</span>
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="admin-pill">
+      <div class="admin-avatar">S</div>
+      <div>
+        <div class="admin-name">Shivaraj</div>
+        <div class="admin-role">Super Admin</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div>
+        <div class="page-title" id="page-title">Command Center</div>
+        <div class="breadcrumb">Sprinkle Water → <span id="breadcrumb-sub">Overview</span></div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="live-badge">
+        <div class="live-dot"></div>
+        Live · Bengaluru
+      </div>
+      <button class="topbar-btn" onclick="toggleTheme()">🌙</button>
+      <button class="topbar-btn">
+        🔔
+        <div class="notif-dot"></div>
+      </button>
+      <button class="topbar-btn">👤</button>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- ═══ OVERVIEW ═══ -->
+    <section class="section active" id="overview">
+
+      <!-- REVENUE TICKER -->
+      <div class="revenue-ticker">
+        <div>
+          <div class="ticker-label">💰 Revenue Today</div>
+          <div class="ticker-value" id="revenue-ticker">₹4,850</div>
+          <div class="ticker-sub">↑ 23% from yesterday · Updates live</div>
+        </div>
+        <div class="ticker-right">
+          <div class="ticker-label">📦 Orders Today</div>
+          <div class="ticker-orders" id="orders-ticker">97</div>
+          <div class="ticker-sub">Across BTM & SG Palya</div>
+        </div>
+      </div>
+
+      <!-- STATS -->
+      <div class="stats-grid">
+        <div class="stat-card green">
+          <div class="stat-icon">💧</div>
+          <div class="stat-val">97</div>
+          <div class="stat-label">Orders Today</div>
+          <div class="stat-change up">↑ 23% vs yesterday</div>
+        </div>
+        <div class="stat-card amber">
+          <div class="stat-icon">🚴</div>
+          <div class="stat-val">8</div>
+          <div class="stat-label">Active Vendors</div>
+          <div class="stat-change up">↑ 2 online now</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-icon">👥</div>
+          <div class="stat-val">543</div>
+          <div class="stat-label">Total Customers</div>
+          <div class="stat-change up">↑ 12 new today</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-icon">🫙</div>
+          <div class="stat-val">1,240</div>
+          <div class="stat-label">Cans in Circulation</div>
+          <div class="stat-change up">↑ 48 dispatched</div>
+        </div>
+      </div>
+
+      <!-- ALERTS -->
+      <div style="margin-bottom: 20px;">
+        <div class="alert-item warning">⚠️ Vendor Raju Kumar — Low stock! Only 3 cans remaining in BTM Layout</div>
+        <div class="alert-item info">📦 New stock order: Vendor Suresh Kumar ordered 50 cans — Auto approved, dispatch in 5hrs</div>
+        <div class="alert-item success">✅ 12 deliveries completed in last 1 hour · All on time</div>
+      </div>
+
+      <div class="grid-3">
+        <!-- REVENUE CHART -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Revenue This Week</div>
+              <div class="card-subtitle">Daily breakdown in ₹</div>
+            </div>
+            <button class="btn btn-outline btn-sm">Export</button>
+          </div>
+          <div class="chart-bars">
+            <div class="chart-bar-wrap">
+              <div class="chart-bar" style="height: 55px;"></div>
+              <div class="chart-label">Mon</div>
+            </div>
+            <div class="chart-bar-wrap">
+              <div class="chart-bar" style="height: 70px;"></div>
+              <div class="chart-label">Tue</div>
+            </div>
+            <div class="chart-bar-wrap">
+              <div class="chart-bar" style="height: 45px;"></div>
+              <div class="chart-label">Wed</div>
+            </div>
+            <div class="chart-bar-wrap">
+              <div class="chart-bar accent" style="height: 90px;"></div>
+              <div class="chart-label">Thu</div>
+            </div>
+            <div class="chart-bar-wrap">
+              <div class="chart-bar" style="height: 65px;"></div>
+              <div class="chart-label">Fri</div>
+            </div>
+            <div class="chart-bar-wrap">
+              <div class="chart-bar" style="height: 80px;"></div>
+              <div class="chart-label">Sat</div>
+            </div>
+            <div class="chart-bar-wrap">
+              <div class="chart-bar accent" style="height: 100px;"></div>
+              <div class="chart-label">Sun</div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:12px;">
+            <span style="font-size:12px;color:var(--muted);">Weekly Total</span>
+            <span style="font-family:var(--font-display);font-weight:700;color:var(--primary);">₹32,450</span>
+          </div>
+        </div>
+
+        <!-- LIVE VENDORS -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Live Vendors</div>
+          </div>
+          <div class="vendor-row">
+            <div class="online-ind online"></div>
+            <div class="vendor-avatar">R</div>
+            <div class="vendor-info">
+              <div class="vendor-name">Raju Kumar</div>
+              <div class="vendor-area">📍 BTM Layout</div>
+            </div>
+            <div class="vendor-stats">
+              <div class="vendor-deliveries">14</div>
+              <div class="vendor-stock">3 cans left ⚠️</div>
+            </div>
+          </div>
+          <div class="vendor-row">
+            <div class="online-ind online"></div>
+            <div class="vendor-avatar">S</div>
+            <div class="vendor-info">
+              <div class="vendor-name">Suresh Kumar</div>
+              <div class="vendor-area">📍 SG Palya</div>
+            </div>
+            <div class="vendor-stats">
+              <div class="vendor-deliveries">21</div>
+              <div class="vendor-stock">18 cans left ✅</div>
+            </div>
+          </div>
+          <div class="vendor-row">
+            <div class="online-ind offline"></div>
+            <div class="vendor-avatar">M</div>
+            <div class="vendor-info">
+              <div class="vendor-name">Mohan Das</div>
+              <div class="vendor-area">📍 BTM Layout</div>
+            </div>
+            <div class="vendor-stats">
+              <div class="vendor-deliveries" style="color:var(--muted);">—</div>
+              <div class="vendor-stock">Offline</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RECENT ACTIVITY -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Recent Activity</div>
+          <button class="btn btn-outline btn-sm">View All</button>
+        </div>
+        <div class="activity-item">
+          <div class="activity-icon" style="background:var(--primary-pale);">📦</div>
+          <div>
+            <div class="activity-text">New order placed — <strong>Priya S.</strong> ordered 2 cans (Exchange) for 12–1 PM slot</div>
+            <div class="activity-time">2 mins ago · BTM Layout · ₹100</div>
+          </div>
+          <span class="badge amber" style="margin-left:auto;flex-shrink:0;">Pending</span>
+        </div>
+        <div class="activity-item">
+          <div class="activity-icon" style="background:var(--primary-pale);">✅</div>
+          <div>
+            <div class="activity-text">Order delivered — <strong>Raju Kumar</strong> delivered 1 can to Kiran M.</div>
+            <div class="activity-time">8 mins ago · SG Palya · ₹50</div>
+          </div>
+          <span class="badge green" style="margin-left:auto;flex-shrink:0;">Delivered</span>
+        </div>
+        <div class="activity-item">
+          <div class="activity-icon" style="background:var(--accent-pale);">🎟️</div>
+          <div>
+            <div class="activity-text">Coupon used — <strong>SPRINK10</strong> applied by Anand R. for 10% discount</div>
+            <div class="activity-time">15 mins ago · ₹45 charged</div>
+          </div>
+          <span class="badge purple" style="margin-left:auto;flex-shrink:0;">Coupon</span>
+        </div>
+        <div class="activity-item">
+          <div class="activity-icon" style="background:var(--info-pale);">🫙</div>
+          <div>
+            <div class="activity-text">Stock order auto-approved — <strong>Suresh Kumar</strong> ordered 50 cans · Dispatch in 5hrs</div>
+            <div class="activity-time">32 mins ago · ₹750 credit</div>
+          </div>
+          <span class="badge blue" style="margin-left:auto;flex-shrink:0;">Auto-approved</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ ORDERS ═══ -->
+    <section class="section" id="orders">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <div class="search-bar">
+          <span>🔍</span>
+          <input placeholder="Search orders, customers...">
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-outline btn-sm">📥 Export</button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('order-modal')">+ Manual Order</button>
+        </div>
+      </div>
+
+      <div class="filters">
+        <button class="filter-btn active">All Orders</button>
+        <button class="filter-btn">Pending</button>
+        <button class="filter-btn">Confirmed</button>
+        <button class="filter-btn">Out for Delivery</button>
+        <button class="filter-btn">Delivered</button>
+        <button class="filter-btn">Cancelled</button>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Type</th>
+                <th>Slot</th>
+                <th>Vendor</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span style="font-family:var(--font-mono);font-size:12px;">#SW-2049</span></td>
+                <td><strong>Priya Sharma</strong><br><span style="font-size:11px;color:var(--muted);">BTM Layout</span></td>
+                <td>Exchange · 2 Cans</td>
+                <td>12–1 PM</td>
+                <td>
+                  <select style="font-size:12px;border:1px solid var(--border);border-radius:6px;padding:3px 6px;background:var(--bg);font-family:var(--font-body);">
+                    <option>Raju Kumar</option>
+                    <option>Suresh Kumar</option>
+                  </select>
+                </td>
+                <td><strong>₹100</strong></td>
+                <td><span class="badge amber"><div class="badge-dot" style="background:#f0a500;"></div>Pending</span></td>
+                <td>
+                  <div style="display:flex;gap:6px;">
+                    <button class="btn btn-primary btn-sm">Confirm</button>
+                    <button class="btn btn-sm" style="background:var(--danger-pale);color:var(--danger);border:none;">Cancel</button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><span style="font-family:var(--font-mono);font-size:12px;">#SW-2048</span></td>
+                <td><strong>Kiran Reddy</strong><br><span style="font-size:11px;color:var(--muted);">SG Palya</span></td>
+                <td>New Can · 1 Can</td>
+                <td>11 AM–12 PM</td>
+                <td>Suresh Kumar</td>
+                <td><strong>₹170</strong></td>
+                <td><span class="badge green"><div class="badge-dot" style="background:var(--primary);"></div>Delivered</span></td>
+                <td><button class="btn btn-outline btn-sm">Details</button></td>
+              </tr>
+              <tr>
+                <td><span style="font-family:var(--font-mono);font-size:12px;">#SW-2047</span></td>
+                <td><strong>Anand Kumar</strong><br><span style="font-size:11px;color:var(--muted);">BTM Layout</span></td>
+                <td>Exchange · 3 Cans</td>
+                <td>2–3 PM</td>
+                <td>
+                  <select style="font-size:12px;border:1px solid var(--border);border-radius:6px;padding:3px 6px;background:var(--bg);font-family:var(--font-body);">
+                    <option>Raju Kumar</option>
+                    <option>Suresh Kumar</option>
+                  </select>
+                </td>
+                <td><strong>₹150</strong></td>
+                <td><span class="badge blue"><div class="badge-dot" style="background:var(--info);"></div>Out for Delivery</span></td>
+                <td><button class="btn btn-outline btn-sm">Track</button></td>
+              </tr>
+              <tr>
+                <td><span style="font-family:var(--font-mono);font-size:12px;">#SW-2046</span></td>
+                <td><strong>Meera Nair</strong><br><span style="font-size:11px;color:var(--muted);">BTM Layout</span></td>
+                <td>⚡ Emergency · 1 Can</td>
+                <td>ASAP</td>
+                <td>Raju Kumar</td>
+                <td><strong>₹60</strong></td>
+                <td><span class="badge amber"><div class="badge-dot" style="background:#f0a500;"></div>Pending</span></td>
+                <td>
+                  <div style="display:flex;gap:6px;">
+                    <button class="btn btn-primary btn-sm">Confirm</button>
+                    <button class="btn btn-sm" style="background:var(--danger-pale);color:var(--danger);border:none;">Cancel</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ VENDORS ═══ -->
+    <section class="section" id="vendors">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <div class="search-bar">
+          <span>🔍</span>
+          <input placeholder="Search vendors...">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('vendor-modal')">+ Add Vendor</button>
+      </div>
+
+      <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);">
+        <div class="stat-card green">
+          <div class="stat-icon">🚴</div>
+          <div class="stat-val">8</div>
+          <div class="stat-label">Total Vendors</div>
+        </div>
+        <div class="stat-card amber">
+          <div class="stat-icon">🟢</div>
+          <div class="stat-val">5</div>
+          <div class="stat-label">Online Now</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-icon">🫙</div>
+          <div class="stat-val">420</div>
+          <div class="stat-label">Total Stock</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-icon">💰</div>
+          <div class="stat-val">₹18,500</div>
+          <div class="stat-label">Pending Payouts</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">All Vendors</div>
+          <button class="btn btn-outline btn-sm">📥 Export</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Vendor</th>
+                <th>Zone</th>
+                <th>Status</th>
+                <th>Stock</th>
+                <th>Today's Deliveries</th>
+                <th>Rating</th>
+                <th>Earnings</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div class="vendor-avatar" style="width:32px;height:32px;font-size:14px;">R</div>
+                    <div><strong>Raju Kumar</strong><br><span style="font-size:11px;color:var(--muted);">+91 9876543210</span></div>
+                  </div>
+                </td>
+                <td>BTM Layout</td>
+                <td><span class="badge green"><div class="badge-dot" style="background:#22c55e;"></div>Online</span></td>
+                <td>
+                  <div style="font-size:13px;">3 filled ⚠️</div>
+                  <div class="progress-bar" style="width:80px;">
+                    <div class="progress-fill" style="width:6%;background:var(--danger);"></div>
+                  </div>
+                </td>
+                <td>14 cans</td>
+                <td>⭐ 4.8</td>
+                <td>₹518</td>
+                <td>
+                  <div style="display:flex;gap:6px;">
+                    <button class="btn btn-outline btn-sm">View</button>
+                    <button class="btn btn-amber btn-sm">Bonus</button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div class="vendor-avatar" style="width:32px;height:32px;font-size:14px;">S</div>
+                    <div><strong>Suresh Kumar</strong><br><span style="font-size:11px;color:var(--muted);">+91 9876543211</span></div>
+                  </div>
+                </td>
+                <td>SG Palya</td>
+                <td><span class="badge green"><div class="badge-dot" style="background:#22c55e;"></div>Online</span></td>
+                <td>
+                  <div style="font-size:13px;">18 filled ✅</div>
+                  <div class="progress-bar" style="width:80px;">
+                    <div class="progress-fill" style="width:72%;"></div>
+                  </div>
+                </td>
+                <td>21 cans</td>
+                <td>⭐ 4.9</td>
+                <td>₹777</td>
+                <td>
+                  <div style="display:flex;gap:6px;">
+                    <button class="btn btn-outline btn-sm">View</button>
+                    <button class="btn btn-amber btn-sm">Bonus</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ CUSTOMERS ═══ -->
+    <section class="section" id="customers">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <div class="search-bar">
+          <span>🔍</span>
+          <input placeholder="Search customers...">
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-outline btn-sm">📥 Export</button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('credit-modal')">💰 Issue Credits</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">All Customers</div>
+          <div class="filters" style="margin-bottom:0;">
+            <button class="filter-btn active">All</button>
+            <button class="filter-btn">Active</button>
+            <button class="filter-btn">New Today</button>
+            <button class="filter-btn">High Value</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Customer</th>
+                <th>Zone</th>
+                <th>Total Orders</th>
+                <th>Wallet Balance</th>
+                <th>Deposit Held</th>
+                <th>Last Order</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Priya Sharma</strong><br><span style="font-size:11px;color:var(--muted);">+91 9345678901</span></td>
+                <td>BTM Layout</td>
+                <td>24 orders</td>
+                <td><span style="font-weight:700;color:var(--primary);">₹250</span></td>
+                <td>₹120</td>
+                <td>Today</td>
+                <td>
+                  <div style="display:flex;gap:6px;">
+                    <button class="btn btn-outline btn-sm">View</button>
+                    <button class="btn btn-primary btn-sm">Credit</button>
+                    <button class="btn btn-sm" style="background:var(--danger-pale);color:var(--danger);border:none;">Block</button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Kiran Reddy</strong><br><span style="font-size:11px;color:var(--muted);">+91 9876543212</span></td>
+                <td>SG Palya</td>
+                <td>18 orders</td>
+                <td><span style="font-weight:700;color:var(--primary);">₹0</span></td>
+                <td>₹240</td>
+                <td>Yesterday</td>
+                <td>
+                  <div style="display:flex;gap:6px;">
+                    <button class="btn btn-outline btn-sm">View</button>
+                    <button class="btn btn-primary btn-sm">Credit</button>
+                    <button class="btn btn-sm" style="background:var(--danger-pale);color:var(--danger);border:none;">Block</button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Anand Kumar</strong><br><span style="font-size:11px;color:var(--muted);">+91 9876543213</span></td>
+                <td>BTM Layout</td>
+                <td>52 orders</td>
+                <td><span style="font-weight:700;color:var(--primary);">₹450</span></td>
+                <td>₹120</td>
+                <td>Today</td>
+                <td>
+                  <div style="display:flex;gap:6px;">
+                    <button class="btn btn-outline btn-sm">View</button>
+                    <button class="btn btn-primary btn-sm">Credit</button>
+                    <button class="btn btn-sm" style="background:var(--danger-pale);color:var(--danger);border:none;">Block</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ COUPONS ═══ -->
+    <section class="section" id="coupons">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <div></div>
+        <button class="btn btn-primary" onclick="openModal('coupon-modal')">+ Create Coupon</button>
+      </div>
+
+      <div class="mini-stats">
+        <div class="mini-stat">
+          <div class="mini-stat-val">8</div>
+          <div class="mini-stat-label">Active Coupons</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-val">143</div>
+          <div class="mini-stat-label">Total Uses</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-val">₹2,840</div>
+          <div class="mini-stat-label">Discount Given</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <div class="coupon-card" style="margin-bottom:12px;">
+            <div class="coupon-code">SPRINK10</div>
+            <div class="coupon-discount">10% off · All customers · Min ₹50</div>
+            <div class="coupon-meta">Used 48 times · Expires 31 Dec 2025 · Active ✅</div>
+          </div>
+          <div class="coupon-card" style="background:linear-gradient(135deg,#1565c0,#1976d2);margin-bottom:12px;">
+            <div class="coupon-code">FIRST50</div>
+            <div class="coupon-discount">₹50 off · First order only</div>
+            <div class="coupon-meta">Used 95 times · No expiry · Active ✅</div>
+          </div>
+          <div class="coupon-card" style="background:linear-gradient(135deg,#6a1b9a,#8e24aa);">
+            <div class="coupon-code">DIWALI20</div>
+            <div class="coupon-discount">20% off · Festival offer</div>
+            <div class="coupon-meta">Used 0 times · Starts 20 Oct · Scheduled 📅</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">All Coupons</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Discount</th>
+                  <th>Uses</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span style="font-family:var(--font-mono);font-size:12px;font-weight:700;">SPRINK10</span></td>
+                  <td>10% off</td>
+                  <td>48/100</td>
+                  <td><span class="badge green">Active</span></td>
+                  <td><button class="btn btn-sm" style="background:var(--danger-pale);color:var(--danger);border:none;">Deactivate</button></td>
+                </tr>
+                <tr>
+                  <td><span style="font-family:var(--font-mono);font-size:12px;font-weight:700;">FIRST50</span></td>
+                  <td>₹50 flat</td>
+                  <td>95/∞</td>
+                  <td><span class="badge green">Active</span></td>
+                  <td><button class="btn btn-sm" style="background:var(--danger-pale);color:var(--danger);border:none;">Deactivate</button></td>
+                </tr>
+                <tr>
+                  <td><span style="font-family:var(--font-mono);font-size:12px;font-weight:700;">DIWALI20</span></td>
+                  <td>20% off</td>
+                  <td>0/500</td>
+                  <td><span class="badge blue">Scheduled</span></td>
+                  <td><button class="btn btn-outline btn-sm">Edit</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ SUBSCRIPTIONS ═══ -->
+    <section class="section" id="subscriptions">
+      <div class="mini-stats">
+        <div class="mini-stat">
+          <div class="mini-stat-val">34</div>
+          <div class="mini-stat-label">Active Subscriptions</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-val">₹8,500</div>
+          <div class="mini-stat-label">Monthly Revenue</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-val">92%</div>
+          <div class="mini-stat-label">Renewal Rate</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Active Subscriptions</div>
+          </div>
+          <div class="sub-card">
+            <div>
+              <div style="font-weight:600;font-size:14px;">Priya Sharma</div>
+              <div style="font-size:12px;color:var(--muted);">Weekly · 7 cans/week · BTM Layout</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-weight:700;color:var(--primary);">₹350/week</div>
+              <span class="badge green">Active</span>
+            </div>
+          </div>
+          <div class="sub-card">
+            <div>
+              <div style="font-weight:600;font-size:14px;">Anand Kumar</div>
+              <div style="font-size:12px;color:var(--muted);">Monthly · 30 cans/month · BTM Layout</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-weight:700;color:var(--primary);">₹1,350/month</div>
+              <span class="badge green">Active</span>
+            </div>
+          </div>
+          <div class="sub-card">
+            <div>
+              <div style="font-weight:600;font-size:14px;">Meera Nair</div>
+              <div style="font-size:12px;color:var(--muted);">Every 3 days · SG Palya</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-weight:700;color:var(--primary);">₹150/3 days</div>
+              <span class="badge amber">Paused</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Subscription Plans</div>
+            <button class="btn btn-primary btn-sm">+ New Plan</button>
+          </div>
+          <div class="sub-card">
+            <div>
+              <div style="font-weight:700;font-size:15px;">Weekly Plan</div>
+              <div style="font-size:12px;color:var(--muted);">7 cans per week · Auto order</div>
+            </div>
+            <div style="font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--primary);">₹350</div>
+          </div>
+          <div class="sub-card">
+            <div>
+              <div style="font-weight:700;font-size:15px;">Monthly Plan</div>
+              <div style="font-size:12px;color:var(--muted);">30 cans per month · 10% savings</div>
+            </div>
+            <div style="font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--primary);">₹1,350</div>
+          </div>
+          <div class="sub-card">
+            <div>
+              <div style="font-weight:700;font-size:15px;">Custom Plan</div>
+              <div style="font-size:12px;color:var(--muted);">Every X days · Flexible</div>
+            </div>
+            <div style="font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--primary);">Custom</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ ANALYTICS ═══ -->
+    <section class="section" id="analytics">
+      <div class="stats-grid">
+        <div class="stat-card green">
+          <div class="stat-icon">📈</div>
+          <div class="stat-val">₹1.2L</div>
+          <div class="stat-label">Monthly Revenue</div>
+          <div class="stat-change up">↑ 18% vs last month</div>
+        </div>
+        <div class="stat-card amber">
+          <div class="stat-icon">📦</div>
+          <div class="stat-val">2,840</div>
+          <div class="stat-label">Monthly Orders</div>
+          <div class="stat-change up">↑ 24% growth</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-icon">🔄</div>
+          <div class="stat-val">78%</div>
+          <div class="stat-label">Customer Retention</div>
+          <div class="stat-change up">↑ 5% improvement</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-icon">💰</div>
+          <div class="stat-val">₹42</div>
+          <div class="stat-label">Avg Order Value</div>
+          <div class="stat-change up">↑ ₹3 increase</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Monthly Revenue Trend</div>
+            <button class="btn btn-outline btn-sm">📥 Download</button>
+          </div>
+          <div class="chart-bars" style="height:150px;">
+            <div class="chart-bar-wrap"><div class="chart-bar" style="height:60px;"></div><div class="chart-label">Jan</div></div>
+            <div class="chart-bar-wrap"><div class="chart-bar" style="height:75px;"></div><div class="chart-label">Feb</div></div>
+            <div class="chart-bar-wrap"><div class="chart-bar" style="height:55px;"></div><div class="chart-label">Mar</div></div>
+            <div class="chart-bar-wrap"><div class="chart-bar" style="height:90px;"></div><div class="chart-label">Apr</div></div>
+            <div class="chart-bar-wrap"><div class="chart-bar" style="height:80px;"></div><div class="chart-label">May</div></div>
+            <div class="chart-bar-wrap"><div class="chart-bar accent" style="height:140px;"></div><div class="chart-label">Jun</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Top Performing Areas</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                <span style="font-size:13px;font-weight:600;">BTM Layout</span>
+                <span style="font-size:13px;font-weight:700;color:var(--primary);">1,840 orders</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" style="width:85%;"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                <span style="font-size:13px;font-weight:600;">SG Palya</span>
+                <span style="font-size:13px;font-weight:700;color:var(--primary);">1,000 orders</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" style="width:46%;"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                <span style="font-size:13px;font-weight:600;">HSR Layout</span>
+                <span style="font-size:13px;font-weight:700;color:var(--muted);">Coming Soon</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" style="width:0%;"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Investor Metrics</div>
+          <div style="font-size:12px;color:var(--muted);">Key performance indicators for fundraising</div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px;">
+          <div style="text-align:center;padding:16px;background:var(--primary-pale);border-radius:12px;">
+            <div style="font-family:var(--font-display);font-size:28px;font-weight:700;color:var(--primary);">₹13</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px;">Platform Fee/Order</div>
+          </div>
+          <div style="text-align:center;padding:16px;background:var(--accent-pale);border-radius:12px;">
+            <div style="font-family:var(--font-display);font-size:28px;font-weight:700;color:#b37a00;">78%</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px;">Retention Rate</div>
+          </div>
+          <div style="text-align:center;padding:16px;background:var(--info-pale);border-radius:12px;">
+            <div style="font-family:var(--font-display);font-size:28px;font-weight:700;color:var(--info);">₹42</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px;">Avg Order Value</div>
+          </div>
+          <div style="text-align:center;padding:16px;background:var(--purple-pale);border-radius:12px;">
+            <div style="font-family:var(--font-display);font-size:28px;font-weight:700;color:var(--purple);">24%</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px;">MoM Growth</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ COMPLAINTS ═══ -->
+    <section class="section" id="complaints">
+      <div class="mini-stats">
+        <div class="mini-stat">
+          <div class="mini-stat-val" style="color:var(--danger);">3</div>
+          <div class="mini-stat-label">Open Complaints</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-val" style="color:var(--accent);">2</div>
+          <div class="mini-stat-label">In Progress</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-val" style="color:var(--primary);">48</div>
+          <div class="mini-stat-label">Resolved This Month</div>
+        </div>
+      </div>
+
+      <div class="complaint-item">
+        <div class="complaint-header">
+          <div class="complaint-title">🔴 Wrong quantity delivered</div>
+          <span class="badge red">Open</span>
+        </div>
+        <div class="complaint-body">Customer Priya Sharma ordered 2 cans but received only 1. Vendor Raju Kumar was assigned. Customer requesting refund of ₹50.</div>
+        <div class="complaint-actions">
+          <button class="btn btn-primary btn-sm">✅ Resolve + Refund</button>
+          <button class="btn btn-outline btn-sm">💬 Contact Vendor</button>
+          <button class="btn btn-outline btn-sm">📞 Call Customer</button>
+        </div>
+      </div>
+
+      <div class="complaint-item">
+        <div class="complaint-header">
+          <div class="complaint-title">🟡 Late delivery</div>
+          <span class="badge amber">In Progress</span>
+        </div>
+        <div class="complaint-body">Customer Kiran Reddy reports delivery was 45 minutes late for 11AM–12PM slot. Vendor cited traffic. Customer requesting compensation.</div>
+        <div class="complaint-actions">
+          <button class="btn btn-primary btn-sm">💰 Issue ₹20 Credit</button>
+          <button class="btn btn-outline btn-sm">📝 Add Note</button>
+          <button class="btn btn-outline btn-sm">✅ Close</button>
+        </div>
+      </div>
+
+      <div class="complaint-item">
+        <div class="complaint-header">
+          <div class="complaint-title">🔴 Damaged can delivered</div>
+          <span class="badge red">Open</span>
+        </div>
+        <div class="complaint-body">Customer Anand Kumar received a cracked can. Water leaked. Customer requesting replacement + refund of deposit ₹120.</div>
+        <div class="complaint-actions">
+          <button class="btn btn-primary btn-sm">🔄 Schedule Replacement</button>
+          <button class="btn btn-outline btn-sm">💰 Refund ₹120</button>
+          <button class="btn btn-outline btn-sm">📞 Call Customer</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ FINANCE ═══ -->
+    <section class="section" id="finance">
+      <div class="finance-hero">
+        <div style="font-size:12px;color:rgba(255,255,255,0.5);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Total Platform Revenue</div>
+        <div style="font-family:var(--font-display);font-size:48px;font-weight:900;color:#fff;">₹1,24,850</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-top:6px;">Since launch · Updated in real-time</div>
+        <div class="finance-grid">
+          <div class="finance-stat">
+            <div class="finance-stat-val">₹32,450</div>
+            <div class="finance-stat-label">This Week</div>
+          </div>
+          <div class="finance-stat">
+            <div class="finance-stat-val">₹18,500</div>
+            <div class="finance-stat-label">Pending Payouts</div>
+          </div>
+          <div class="finance-stat">
+            <div class="finance-stat-val">₹4,850</div>
+            <div class="finance-stat-label">Today</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Vendor Payout Requests</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Vendor</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Raju Kumar</strong></td>
+                  <td><strong>₹5,180</strong></td>
+                  <td><span class="badge amber">Requested</span></td>
+                  <td>
+                    <div style="display:flex;gap:6px;">
+                      <button class="btn btn-primary btn-sm">Approve</button>
+                      <button class="btn btn-sm" style="background:var(--danger-pale);color:var(--danger);border:none;">Reject</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>Suresh Kumar</strong></td>
+                  <td><strong>₹7,770</strong></td>
+                  <td><span class="badge amber">Requested</span></td>
+                  <td>
+                    <div style="display:flex;gap:6px;">
+                      <button class="btn btn-primary btn-sm">Approve</button>
+                      <button class="btn btn-sm" style="background:var(--danger-pale);color:var(--danger);border:none;">Reject</button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">P&L Summary</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;justify-content:space-between;padding:12px;background:var(--primary-pale);border-radius:10px;">
+              <span style="font-size:14px;font-weight:600;">Total Revenue</span>
+              <span style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--primary);">₹1,24,850</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:12px;background:var(--danger-pale);border-radius:10px;">
+              <span style="font-size:14px;font-weight:600;">Vendor Payouts</span>
+              <span style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--danger);">-₹95,650</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:12px;background:var(--accent-pale);border-radius:10px;">
+              <span style="font-size:14px;font-weight:600;">Platform Fee Earned</span>
+              <span style="font-family:var(--font-display);font-size:16px;font-weight:700;color:#b37a00;">₹29,200</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:16px;background:var(--primary);border-radius:10px;">
+              <span style="font-size:15px;font-weight:700;color:#fff;">Net Profit</span>
+              <span style="font-family:var(--font-display);font-size:18px;font-weight:700;color:#fff;">₹29,200</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ SETTINGS ═══ -->
+    <section class="section" id="settings">
+      <div class="grid-2">
+        <div>
+          <div class="card" style="margin-bottom:16px;">
+            <div class="settings-group-title">💧 Pricing Settings</div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Customer Can Price</div>
+                <div class="setting-desc">Price customer pays per can</div>
+              </div>
+              <div class="setting-input">
+                ₹<input type="number" value="50" min="1">
+              </div>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Vendor Cost Price</div>
+                <div class="setting-desc">What vendor pays per can</div>
+              </div>
+              <div class="setting-input">
+                ₹<input type="number" value="18" min="1">
+              </div>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Emergency Surcharge</div>
+                <div class="setting-desc">Extra charge for emergency orders</div>
+              </div>
+              <div class="setting-input">
+                ₹<input type="number" value="10" min="0">
+              </div>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Vendor Bulk 20+ Price</div>
+                <div class="setting-desc">Discounted price for 20+ can orders</div>
+              </div>
+              <div class="setting-input">
+                ₹<input type="number" value="15" min="1">
+              </div>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Vendor Bulk 50+ Price</div>
+                <div class="setting-desc">Discounted price for 50+ can orders</div>
+              </div>
+              <div class="setting-input">
+                ₹<input type="number" value="13" min="1">
+              </div>
+            </div>
+            <div style="margin-top:16px;">
+              <button class="btn btn-primary" onclick="saveSettings()">💾 Save Pricing to Supabase</button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card" style="margin-bottom:16px;">
+            <div class="settings-group-title">🔧 Platform Controls</div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Service Active</div>
+                <div class="setting-desc">Turn entire platform on/off</div>
+              </div>
+              <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Emergency Delivery</div>
+                <div class="setting-desc">Allow emergency order requests</div>
+              </div>
+              <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">New Customer Registration</div>
+                <div class="setting-desc">Allow new customers to sign up</div>
+              </div>
+              <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Auto Vendor Assignment</div>
+                <div class="setting-desc">Auto-assign orders to nearest vendor</div>
+              </div>
+              <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Auto Approve Stock Orders</div>
+                <div class="setting-desc">Auto-approve vendor stock requests</div>
+              </div>
+              <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="settings-group-title">👤 Admin Users</div>
+            <div class="vendor-row">
+              <div class="vendor-avatar" style="background:var(--primary);">S</div>
+              <div class="vendor-info">
+                <div class="vendor-name">Shivaraj M</div>
+                <div class="vendor-area">Super Admin · All access</div>
+              </div>
+              <span class="badge green">Active</span>
+            </div>
+            <div class="vendor-row">
+              <div class="vendor-avatar" style="background:#1565c0;">O</div>
+              <div class="vendor-info">
+                <div class="vendor-name">Operations Team</div>
+                <div class="vendor-area">Orders + Vendors</div>
+              </div>
+              <span class="badge blue">Active</span>
+            </div>
+            <div style="margin-top:14px;">
+              <button class="btn btn-outline btn-sm">+ Add Admin User</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="coupon-modal">
+  <div class="modal">
+    <div class="modal-title">🎟️ Create New Coupon</div>
+    <div class="modal-form">
+      <div class="form-group">
+        <label>COUPON CODE</label>
+        <input class="form-input" placeholder="e.g. SPRINK10" style="font-family:var(--font-mono);font-weight:700;letter-spacing:2px;">
+      </div>
+      <div class="form-group">
+        <label>DISCOUNT TYPE</label>
+        <select class="form-input">
+          <option>Percentage (e.g. 10%)</option>
+          <option>Flat Amount (e.g. ₹50)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>DISCOUNT VALUE</label>
+        <input class="form-input" type="number" placeholder="10">
+      </div>
+      <div class="form-group">
+        <label>USAGE LIMIT</label>
+        <input class="form-input" type="number" placeholder="100 (leave blank for unlimited)">
+      </div>
+      <div class="form-group">
+        <label>EXPIRY DATE</label>
+        <input class="form-input" type="date">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('coupon-modal')">Cancel</button>
+      <button class="btn btn-primary">Create Coupon</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="credit-modal">
+  <div class="modal">
+    <div class="modal-title">💰 Issue Wallet Credits</div>
+    <div class="modal-form">
+      <div class="form-group">
+        <label>CUSTOMER</label>
+        <select class="form-input">
+          <option>Priya Sharma (+91 9345678901)</option>
+          <option>Kiran Reddy (+91 9876543212)</option>
+          <option>All Customers</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>AMOUNT (₹)</label>
+        <input class="form-input" type="number" placeholder="50">
+      </div>
+      <div class="form-group">
+        <label>REASON</label>
+        <select class="form-input">
+          <option>Compensation</option>
+          <option>Referral Bonus</option>
+          <option>Festival Offer</option>
+          <option>Manual Adjustment</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('credit-modal')">Cancel</button>
+      <button class="btn btn-primary">Issue Credits</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="vendor-modal">
+  <div class="modal">
+    <div class="modal-title">🚴 Add New Vendor</div>
+    <div class="modal-form">
+      <div class="form-group">
+        <label>VENDOR NAME</label>
+        <input class="form-input" placeholder="Full name">
+      </div>
+      <div class="form-group">
+        <label>PHONE NUMBER</label>
+        <input class="form-input" type="tel" placeholder="+91 XXXXXXXXXX">
+      </div>
+      <div class="form-group">
+        <label>SERVICE ZONE</label>
+        <select class="form-input">
+          <option>BTM Layout</option>
+          <option>SG Palya</option>
+          <option>HSR Layout</option>
+          <option>Koramangala</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>INITIAL STOCK (Cans)</label>
+        <input class="form-input" type="number" placeholder="20">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('vendor-modal')">Cancel</button>
+      <button class="btn btn-primary">Add Vendor</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="order-modal">
+  <div class="modal">
+    <div class="modal-title">📦 Create Manual Order</div>
+    <div class="modal-form">
+      <div class="form-group">
+        <label>CUSTOMER PHONE</label>
+        <input class="form-input" type="tel" placeholder="+91 XXXXXXXXXX">
+      </div>
+      <div class="form-group">
+        <label>ORDER TYPE</label>
+        <select class="form-input">
+          <option>Exchange (₹50)</option>
+          <option>New Can (₹170)</option>
+          <option>Emergency Exchange (₹60)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>QUANTITY</label>
+        <input class="form-input" type="number" value="1" min="1" max="5">
+      </div>
+      <div class="form-group">
+        <label>DELIVERY SLOT</label>
+        <select class="form-input">
+          <option>9–10 AM</option>
+          <option>10–11 AM</option>
+          <option>12–1 PM</option>
+          <option>4–5 PM</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>ASSIGN VENDOR</label>
+        <select class="form-input">
+          <option>Auto Assign</option>
+          <option>Raju Kumar (BTM)</option>
+          <option>Suresh Kumar (SG Palya)</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('order-modal')">Cancel</button>
+      <button class="btn btn-primary">Place Order</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const PAGES = {
+    'overview':      { title: 'Command Center',   sub: 'Overview' },
+    'orders':        { title: 'Orders',            sub: 'Management' },
+    'vendors':       { title: 'Vendors',           sub: 'Management' },
+    'customers':     { title: 'Customers',         sub: 'Management' },
+    'subscriptions': { title: 'Subscriptions',     sub: 'Management' },
+    'coupons':       { title: 'Coupons & Offers',  sub: 'Growth' },
+    'analytics':     { title: 'Analytics',         sub: 'Reports' },
+    'complaints':    { title: 'Complaints',        sub: 'Operations' },
+    'finance':       { title: 'Finance',           sub: 'Operations' },
+    'settings':      { title: 'Settings',          sub: 'Configuration' },
+  };
+
+  function showSection(id) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelector(`[onclick="showSection('${id}')"]`).classList.add('active');
+    document.getElementById('page-title').textContent = PAGES[id].title;
+    document.getElementById('breadcrumb-sub').textContent = PAGES[id].sub;
+  }
+
+  function openModal(id) {
+    document.getElementById(id).classList.add('open');
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+  }
+
+  document.querySelectorAll('.modal-overlay').forEach(m => {
+    m.addEventListener('click', function(e) {
+      if (e.target === this) this.classList.remove('open');
+    });
+  });
+
+  function toggleTheme() {
+    document.documentElement.style.setProperty('--bg', 
+      getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() === '#f4f7f5' ? '#0f1923' : '#f4f7f5'
+    );
+    document.documentElement.style.setProperty('--card',
+      getComputedStyle(document.documentElement).getPropertyValue('--card').trim() === '#ffffff' ? '#1a2535' : '#ffffff'
+    );
+    document.documentElement.style.setProperty('--text',
+      getComputedStyle(document.documentElement).getPropertyValue('--text').trim() === '#1a1a2e' ? '#e2e8f0' : '#1a1a2e'
+    );
+    document.documentElement.style.setProperty('--border',
+      getComputedStyle(document.documentElement).getPropertyValue('--border').trim() === '#e2e8f0' ? '#2d3748' : '#e2e8f0'
+    );
+    document.documentElement.style.setProperty('--muted',
+      getComputedStyle(document.documentElement).getPropertyValue('--muted').trim() === '#6b7280' ? '#94a3b8' : '#6b7280'
+    );
+  }
+
+  function saveSettings() {
+    alert('✅ Pricing saved to Supabase!\n\nAll apps will reflect new prices instantly.');
+  }
+
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      this.closest('.filters').querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+
+  // Live revenue ticker
+  let revenue = 4850;
+  let orders = 97;
+  setInterval(() => {
+    revenue += Math.floor(Math.random() * 50);
+    orders += Math.random() > 0.7 ? 1 : 0;
+    const ticker = document.getElementById('revenue-ticker');
+    const ordersTicker = document.getElementById('orders-ticker');
+    if (ticker) ticker.textContent = '₹' + revenue.toLocaleString('en-IN');
+    if (ordersTicker) ordersTicker.textContent = orders;
+  }, 3000);
+</script>
+</body>
+</html>
